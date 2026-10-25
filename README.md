@@ -4,6 +4,19 @@ Application Android TV native (Kotlin + Jetpack Compose for TV) conçue spécifi
 
 ---
 
+## 📲 Installation Rapide (Google TV Streamer 4K)
+
+### Via l'application Downloader :
+1. Installez et ouvrez l'application **Downloader** sur votre Google TV.
+2. Entrez simplement le code rapide permanent :
+   ### `6790525`
+3. Cliquez sur **Go** : le téléchargement se lance automatiquement et la TV propose d'installer Talo OS.
+
+> [!TIP]
+> Ce code est permanent : il délivre automatiquement la toute dernière version officielle de Talo OS à chaque mise à jour.
+
+---
+
 ## 🚀 Fonctionnalités Clés
 
 1. **Démarrage Direct (Boot Interceptor)** :
