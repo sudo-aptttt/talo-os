@@ -49,9 +49,9 @@ class HardwareProfiler(
         }
 
         // Decision Engine:
-        // - RAM <= 1200MB (1GB sticks like Fire TV Lite / Mi Stick 1080p) -> ECO
-        // - RAM between 1200MB and 2500MB (Chromecast 4K, Fire TV 4K standard) -> STANDARD
-        // - RAM > 2500MB (Shield Pro 3GB, Fire Cube 2/3GB) + 4K -> ULTRA
+        // - RAM <= 1200MB -> ECO
+        // - RAM between 1200MB and 2500MB -> STANDARD
+        // - RAM > 2500MB (Google TV Streamer 4K 4GB RAM) -> ULTRA
         val recommendedProfile = when {
             totalRamMb <= 1200 -> ProfileType.ECO
             totalRamMb <= 2500 -> ProfileType.STANDARD

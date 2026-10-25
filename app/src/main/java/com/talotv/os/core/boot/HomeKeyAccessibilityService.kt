@@ -47,7 +47,7 @@ class HomeKeyAccessibilityService : AccessibilityService() {
             }
         }
 
-        // Standard Home key interception (Fire TV / Google TV stock override)
+        // Standard Home key interception (Google TV stock override)
         if (keyCode == KeyEvent.KEYCODE_HOME && action == KeyEvent.ACTION_UP) {
             Log.d("TaloAccessibility", "Home Key captured. Launching Talo OS.")
             val intent = Intent(this, MainActivity::class.java).apply {
