@@ -22,7 +22,7 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack-Compose%20TV-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
 [![DRM](https://img.shields.io/badge/DRM-Widevine%20L1%204K-orange?style=flat-square)](https://github.com/sudo-aptttt/talo-tv)
-[![Release](https://img.shields.io/badge/Release-v1.0.0-blue?style=flat-square&logo=github&logoColor=white)](https://github.com/sudo-aptttt/talo-tv/releases/latest)
+[![Status](https://img.shields.io/badge/Status-En%20D%C3%A9veloppement%20(Alpha)-orange?style=flat-square&logo=github&logoColor=white)](https://github.com/sudo-aptttt/talo-tv)
 [![Wiki](https://img.shields.io/badge/Documentation-Wiki-blueviolet?style=flat-square&logo=gitbook&logoColor=white)](https://github.com/sudo-aptttt/talo-tv/wiki)
 
 </div>
