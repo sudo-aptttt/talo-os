@@ -1,6 +1,30 @@
-# 📺 Talo OS — Lanceur TV Haut de Gamme (Google TV Streamer 4K)
+<div align="center">
 
-Application Android TV native (Kotlin + Jetpack Compose for TV) conçue spécifiquement pour le **Google TV Streamer 4K** afin d'offrir une expérience pure, fluide, sans publicité, avec une interface moderne et raffinée.
+# 📺 Talo OS
+
+*L'expérience télévisuelle pure, fluide et sans publicité conçue exclusivement pour le **Google TV Streamer 4K**.*
+
+<br/>
+
+[![Platform](https://img.shields.io/badge/PLATFORM-GOOGLE%20TV%20STREAMER%204K-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/sudo-aptttt/talo-tv)
+[![Downloader Code](https://img.shields.io/badge/DOWNLOADER%20CODE-6790525-FF6F00?style=for-the-badge&logo=googleplay&logoColor=white)](http://aftv.news/6790525)
+
+[![Language](https://img.shields.io/badge/LANGUAGE-KOTLIN-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
+[![UI Engine](https://img.shields.io/badge/UI-COMPOSE%20FOR%20TV-4285F4?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com/jetpack/compose/tv)
+[![Footprint](https://img.shields.io/badge/APK%20FOOTPRINT-1.38%20MB-success?style=for-the-badge)](https://github.com/sudo-aptttt/talo-tv/releases/latest)
+
+[![Privacy](https://img.shields.io/badge/ADS-100%25%20Z%C3%89RO%20PUB-brightgreen?style=for-the-badge)](https://github.com/sudo-aptttt/talo-tv)
+[![License](https://img.shields.io/badge/LICENSE-POLYFORM%20NONCOMMERCIAL-red?style=for-the-badge)](LICENSE)
+
+<br/>
+
+[![Android](https://img.shields.io/badge/Android-14%2B%20(API%2034)-3DDC84?style=flat-square&logo=android&logoColor=white)](https://developer.android.com/)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.0-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
+[![Jetpack Compose](https://img.shields.io/badge/Jetpack-Compose%20TV-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![DRM](https://img.shields.io/badge/DRM-Widevine%20L1%204K-orange?style=flat-square)](https://github.com/sudo-aptttt/talo-tv)
+[![Release](https://img.shields.io/badge/Release-v1.0.0-blue?style=flat-square&logo=github&logoColor=white)](https://github.com/sudo-aptttt/talo-tv/releases/latest)
+
+</div>
 
 ---
 
@@ -10,7 +34,7 @@ Application Android TV native (Kotlin + Jetpack Compose for TV) conçue spécifi
 1. Installez et ouvrez l'application **Downloader** sur votre Google TV.
 2. Entrez simplement le code rapide permanent :
    ### `6790525`
-3. Cliquez sur **Go** : le téléchargement se lance automatiquement et la TV propose d'installer Talo OS.
+3. Cliquez sur **Go** : le téléchargement démarre immédiatement et la TV vous propose d'installer Talo OS.
 
 > [!TIP]
 > Ce code est permanent : il délivre automatiquement la toute dernière version officielle de Talo OS à chaque mise à jour.
