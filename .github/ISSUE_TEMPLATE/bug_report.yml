@@ -1,0 +1,52 @@
+name: "🐛 Signaler un bug"
+description: "Créer un rapport d'anomalie pour aider à améliorer Talo OS."
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de prendre le temps de signaler ce bug ! Merci de vérifier au préalable qu'aucun ticket similaire n'est déjà ouvert.
+  - type: textarea
+    id: description
+    attributes:
+      label: "Description du bug"
+      description: "Une explication claire et concise de l'anomalie rencontrée."
+      placeholder: "Lorsque j'essaie de..."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Étapes pour reproduire"
+      description: "Comment reproduire le problème pas à pas."
+      value: |
+        1. Allumer la TV
+        2. Ouvrir ...
+        3. Constater le problème
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Comportement attendu"
+      description: "Ce qui aurait dû se produire normalement."
+    validations:
+      required: true
+  - type: dropdown
+    id: device
+    attributes:
+      label: "Modèle de l'appareil"
+      options:
+        - "Google TV Streamer 4K (Officiellement supporté)"
+        - "Autre boîtier Google TV / Android TV"
+    validations:
+      required: true
+  - type: input
+    id: app_version
+    attributes:
+      label: "Version de Talo OS"
+      placeholder: "ex: 1.0.0"
+      value: "1.0.0"
+    validations:
+      required: true

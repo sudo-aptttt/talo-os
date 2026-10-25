@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🛡️ Signaler une faille de sécurité
+    url: https://github.com/sudo-aptttt/talo-tv/security/policy
+    about: Merci de suivre notre procédure de divulgation responsable pour toute vulnérabilité.
+  - name: 🌐 Site Officiel Talo TV
+    url: https://talo-tv.studio.ynh.fr
+    about: Visitez le site web officiel de la plateforme Talo TV.

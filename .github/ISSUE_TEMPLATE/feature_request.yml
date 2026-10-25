@@ -1,0 +1,32 @@
+name: "💡 Suggérer une fonctionnalité"
+description: "Proposer une nouvelle idée ou une amélioration pour Talo OS."
+title: "[IDÉE] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Nous sommes toujours à l'écoute des idées de la communauté pour faire évoluer Talo OS !
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Votre suggestion résout-elle un problème spécifique ?"
+      description: "Expliquez le problème ou le besoin rencontré."
+      placeholder: "Je remarque que..."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: "Solution ou fonctionnalité souhaitée"
+      description: "Une description claire de ce que vous aimeriez voir dans l'application."
+      placeholder: "Ce serait génial d'avoir..."
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: "Alternatives envisagées"
+      description: "Avez-vous exploré d'autres solutions de contournement ?"
+    validations:
+      false
