@@ -63,7 +63,7 @@ fun FullAppGrid(
             .fillMaxWidth()
             .padding(horizontal = 44.dp)
     ) {
-        // Chunk apps into rows of 5 (Apple tvOS 5-column full-width grid layout)
+        // Chunk apps into rows of 5 (5-column full-width grid layout)
         val rows = apps.chunked(5)
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -115,7 +115,7 @@ fun GridAppTile(
         label = "GridAppElevation"
     )
 
-    // In Apple tvOS, app names only appear under the focused tile
+    // App names only appear under the focused tile
     val labelAlpha by animateFloatAsState(
         targetValue = if (isFocused) 1f else 0f,
         animationSpec = tween(durationMillis = 150),
@@ -150,7 +150,7 @@ fun GridAppTile(
             }
             .focusable(interactionSource = interactionSource)
     ) {
-        // Squircle App Tile (Full-width Apple tvOS 5-column proportions: 158dp x 100dp)
+        // Squircle App Tile (Full-width 5-column proportions: 158dp x 100dp)
         Box(
             modifier = Modifier
                 .shadow(
@@ -194,17 +194,17 @@ fun GridAppTile(
                     )
                 }
             } else if (app.isSettings) {
-                AppleTvAppIcon(iconType = DockIconType.SETTINGS, size = 62.dp)
+                TaloAppIcon(iconType = DockIconType.SETTINGS, size = 62.dp)
             } else if (app.isStore) {
-                AppleTvAppIcon(iconType = DockIconType.STORE, size = 46.dp)
+                TaloAppIcon(iconType = DockIconType.STORE, size = 46.dp)
             } else {
-                AppleTvAppIcon(iconType = DockIconType.TV, size = 46.dp)
+                TaloAppIcon(iconType = DockIconType.TV, size = 46.dp)
             }
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // App Label below: ONLY visible when focused, exactly matching Apple tvOS!
+        // App Label below: ONLY visible when focused
         Text(
             text = app.name,
             color = Color.White.copy(alpha = labelAlpha),

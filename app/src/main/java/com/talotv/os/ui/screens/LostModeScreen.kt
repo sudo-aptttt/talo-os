@@ -1,4 +1,4 @@
-package com.talotv.os.ui.screens
+﻿package com.talotv.os.ui.screens
 
 import android.content.Context
 import androidx.activity.compose.BackHandler
@@ -49,9 +49,9 @@ import kotlinx.coroutines.delay
 
 /**
  * Talo OS — Fortress Lost Mode Screen (Mode Perdu Inviolable)
- * Strict Apple Monochrome design system (Black & White).
+ * Strict Monochrome design system (Black & White).
  * Unbreachable Kiosk Lock: blocks all navigation, menus, and system controls.
- * Adapts to Apple tvOS split layout when emergency keypad is open.
+ * Adapts to split layout when emergency keypad is open.
  */
 @Composable
 fun LostModeScreen(
@@ -96,7 +96,7 @@ fun LostModeScreen(
                     .fillMaxSize()
                     .padding(horizontal = 64.dp, vertical = 24.dp)
             ) {
-                // Apple Monochrome Padlock Badge
+                // Padlock Badge
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -130,7 +130,7 @@ fun LostModeScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Owner Custom Message Container (Apple Glass Card)
+                // Owner Custom Message Container (Glass Card)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.65f)
@@ -204,7 +204,7 @@ fun LostModeScreen(
                 )
             }
         } else {
-            // Split 16:9 Widescreen Apple tvOS Keypad Layout
+            // Split 16:9 Widescreen Keypad Layout
             Row(
                 modifier = Modifier
                     .fillMaxSize()

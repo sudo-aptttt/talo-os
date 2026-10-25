@@ -1,4 +1,4 @@
-package com.talotv.os.ui.components
+﻿package com.talotv.os.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
@@ -54,9 +54,9 @@ import com.talotv.os.TaloApplication
 import com.talotv.os.core.media.DockAppItem
 import com.talotv.os.core.media.DockIconType
 import com.talotv.os.core.profile.UserProfile
-import com.talotv.os.ui.theme.AppleGlassBorder
-import com.talotv.os.ui.theme.AppleTextPrimary
-import com.talotv.os.ui.theme.AppleTextSecondary
+import com.talotv.os.ui.theme.TaloGlassBorder
+import com.talotv.os.ui.theme.TaloTextPrimary
+import com.talotv.os.ui.theme.TaloTextSecondary
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -119,7 +119,7 @@ fun TvSidebarDrawer(
         } catch (e: Exception) { }
     }
 
-    // Apple tvOS Floating Frosted Glass Sidebar
+    // Talo Floating Frosted Glass Sidebar
     Box(
         modifier = modifier
             .width(280.dp)
@@ -127,7 +127,7 @@ fun TvSidebarDrawer(
             .padding(start = 20.dp, top = 16.dp, bottom = 16.dp)
             .clip(RoundedCornerShape(28.dp))
             .background(Color(0xF2161720))
-            .border(BorderStroke(1.2.dp, AppleGlassBorder), RoundedCornerShape(28.dp))
+            .border(BorderStroke(1.2.dp, TaloGlassBorder), RoundedCornerShape(28.dp))
             .onKeyEvent { event ->
                 if (event.type == KeyEventType.KeyDown) {
                     val code = event.nativeKeyEvent.keyCode
@@ -203,7 +203,7 @@ fun TvSidebarDrawer(
                 // Nom du profil
                 Text(
                     text = activeProfile.name,
-                    color = AppleTextPrimary,
+                    color = TaloTextPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
@@ -214,7 +214,7 @@ fun TvSidebarDrawer(
                 // Heure actuelle sur sa droite
                 Text(
                     text = currentTime,
-                    color = AppleTextSecondary,
+                    color = TaloTextSecondary,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
                     fontFamily = FontFamily.SansSerif
@@ -223,7 +223,7 @@ fun TvSidebarDrawer(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Ligne de séparation discrète façon tvOS
+            // Ligne de separation
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -270,7 +270,7 @@ fun TvSidebarDrawer(
                     } else {
                         "APPLICATIONS FRÉQUENTES"
                     },
-                    color = AppleTextSecondary.copy(alpha = 0.55f),
+                    color = TaloTextSecondary.copy(alpha = 0.55f),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
@@ -378,7 +378,7 @@ fun SidebarAppItem(
                     modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp))
                 )
             } else {
-                AppleTvAppIcon(
+                TaloAppIcon(
                     iconType = app.iconType,
                     size = 18.dp
                 )
@@ -455,7 +455,7 @@ fun SidebarNavItem(
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         modifier = rowModifier
     ) {
-        AppleTvAppIcon(
+        TaloAppIcon(
             iconType = iconType,
             size = 20.dp,
             tint = contentColor

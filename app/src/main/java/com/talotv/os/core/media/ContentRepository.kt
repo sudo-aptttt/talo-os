@@ -15,7 +15,7 @@ object ContentRepository {
         logoText = "Talo OS"
     )
 
-    // Curated catalog of known TV streaming & media applications with signature Apple tvOS hero spotlights.
+    // Curated catalog of known TV streaming & media applications with signature hero spotlights.
     // Note: An app ONLY appears in the dock if it is ACTUALLY INSTALLED on the user's TV system!
     val knownDockApps = listOf(
         DockAppItem(

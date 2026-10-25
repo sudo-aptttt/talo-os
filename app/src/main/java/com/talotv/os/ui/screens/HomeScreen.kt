@@ -72,7 +72,7 @@ fun HomeScreen(
         val remaining = installedApps.filter { app ->
             app.packageName !in dockPackageNames && app.id !in dockIds
         }
-        // Place Store first, other apps in middle, and Settings last (matching Apple tvOS layout)
+        // Place Store first, other apps in middle, and Settings last
         remaining.sortedWith(
             compareBy<com.talotv.os.core.apps.InstalledApp> { app ->
                 when {
@@ -148,7 +148,7 @@ fun HomeScreen(
                 .fillMaxSize()
                 .verticalScroll(scrollState)
         ) {
-            // 1. Top Shelf Showcase (Hero Section with Dynamic Spotlight Backdrop matching Apple tvOS full screen)
+            // 1. Top Shelf Showcase (Hero Section with Dynamic Spotlight Backdrop full screen)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -159,14 +159,14 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // The Signature Apple TV Floating Glass Dock sitting at bottom of Top Shelf
+                // The Signature Talo Floating Glass Dock sitting at bottom of Top Shelf
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 12.dp)
                 ) {
-                    // Apple TV Upward Chevron Indicator right above dock (user reference)
+                    // Upward Chevron Indicator right above dock
                     UpwardChevronIndicator()
 
                     Spacer(modifier = Modifier.height(7.dp))
@@ -283,7 +283,7 @@ fun HomeScreen(
         }
 
         // ============================================================
-        // OVERLAY 2: APPLE PROFILE SWITCHER DIALOG (User Image 4)
+        // OVERLAY 2: PROFILE SWITCHER DIALOG
         // ============================================================
         AnimatedVisibility(
             visible = isProfileSwitcherOpen,

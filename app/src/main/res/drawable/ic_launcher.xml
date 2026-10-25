@@ -4,7 +4,7 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
     
-    <!-- Apple-grade Black Squircle -->
+    <!-- Black Squircle -->
     <path
         android:fillColor="#FF1D1D1F"
         android:pathData="M20,12 h68 a24,24 0 0 1 24,24 v36 a24,24 0 0 1 -24,24 h-68 a24,24 0 0 1 -24,-24 v-36 a24,24 0 0 1 24,-24 z" />

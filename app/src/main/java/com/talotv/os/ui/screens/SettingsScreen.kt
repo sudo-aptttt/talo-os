@@ -96,14 +96,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // =========================================================================
-// Apple TV tvOS Design Palette
+// Talo Settings Palette
 // =========================================================================
-private val AppleDarkBackground = Color(0xFF0F1015)
-private val AppleCardBackground = Color(0x33282A36)
-private val AppleCardBorder = Color(0x22FFFFFF)
-private val AppleAccent = Color(0xFFFFFFFF)
-private val AppleTextPrimary = Color(0xFFFFFFFF)
-private val AppleTextSecondary = Color(0xFF8E8E93)
+private val TaloDarkBackground = Color(0xFF0F1015)
+private val TaloCardBackground = Color(0x33282A36)
+private val TaloCardBorder = Color(0x22FFFFFF)
+private val TaloAccent = Color(0xFFFFFFFF)
+private val TaloTextPrimary = Color(0xFFFFFFFF)
+private val TaloTextSecondary = Color(0xFF8E8E93)
 
 /**
  * 9 Level 0 Categories
@@ -886,7 +886,7 @@ fun SettingsScreen(
                                 item {
                                     SettingsRowItem(
                                         title = "Activer le partage d'\u00E9cran",
-                                        value = "AirPlay / Cast",
+                                        value = "Cast / Diffusion",
                                         enabled = (navLevel == 1),
                                         focusRequester = level1FocusRequesters.getOrNull(3),
                                         onFocused = { level1SelectedIndex = 3 },
@@ -2137,7 +2137,7 @@ fun SettingsScreen(
 
         // Dialog Modals
         activeDialog?.let { dialog ->
-            AppleTvModalDialog(
+            TaloModalDialog(
                 onDismiss = { activeDialog = null }
             ) {
                 when (dialog) {
@@ -2150,12 +2150,12 @@ fun SettingsScreen(
                                 value = tempDeviceName,
                                 onValueChange = { tempDeviceName = it },
                                 textStyle = TextStyle(color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
-                                cursorBrush = SolidColor(AppleAccent),
+                                cursorBrush = SolidColor(TaloAccent),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(Color(0x33FFFFFF))
-                                    .border(BorderStroke(1.2.dp, AppleAccent), RoundedCornerShape(12.dp))
+                                    .border(BorderStroke(1.2.dp, TaloAccent), RoundedCornerShape(12.dp))
                                     .padding(horizontal = 14.dp, vertical = 12.dp)
                             )
                             Spacer(modifier = Modifier.height(18.dp))
@@ -2332,12 +2332,12 @@ fun SettingsScreen(
                                 value = newName,
                                 onValueChange = { newName = it },
                                 textStyle = TextStyle(color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
-                                cursorBrush = SolidColor(AppleAccent),
+                                cursorBrush = SolidColor(TaloAccent),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(Color(0x33FFFFFF))
-                                    .border(BorderStroke(1.2.dp, AppleAccent), RoundedCornerShape(12.dp))
+                                    .border(BorderStroke(1.2.dp, TaloAccent), RoundedCornerShape(12.dp))
                                     .padding(horizontal = 14.dp, vertical = 12.dp)
                             )
                             Spacer(modifier = Modifier.height(18.dp))
@@ -2366,7 +2366,7 @@ fun SettingsScreen(
 }
 
 // =========================================================================
-// Apple TV Full Uniform Settings Capsule Row
+// Uniform Settings Capsule Row
 // Used across Level 0, Level 1, Level 2, and Level 3
 // =========================================================================
 @Composable
@@ -2411,7 +2411,7 @@ fun SettingsRowItem(
     val valueColor = when {
         isFocused && enabled -> Color(0xFF636366)
         isParentActive -> Color(0xBBFFFFFF)
-        else -> AppleTextSecondary
+        else -> TaloTextSecondary
     }
     val chevronColor = when {
         isFocused && enabled -> Color(0xFF636366)
@@ -2532,12 +2532,6 @@ fun TaloOsBrandLockup(
     versionName: String,
     modifier: Modifier = Modifier
 ) {
-    val sfProFont = remember {
-        FontFamily(
-            Font(R.font.sf_pro_bold, FontWeight.Medium)
-        )
-    }
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -2555,9 +2549,9 @@ fun TaloOsBrandLockup(
 
         Text(
             text = "Version $versionName",
-            color = AppleTextSecondary,
+            color = TaloTextSecondary,
             fontSize = 14.sp,
-            fontFamily = sfProFont,
+            fontFamily = FontFamily.SansSerif,
             fontWeight = FontWeight.Medium,
             letterSpacing = 0.5.sp
         )
@@ -2565,7 +2559,7 @@ fun TaloOsBrandLockup(
 }
 
 @Composable
-fun AppleTvModalDialog(
+fun TaloModalDialog(
     onDismiss: () -> Unit,
     content: @Composable () -> Unit
 ) {
@@ -2598,7 +2592,7 @@ fun DialogCard(
     ) {
         Text(text = title, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(8.dp))
-        Text(text = subtitle, color = AppleTextSecondary, fontSize = 13.5.sp, textAlign = TextAlign.Center)
+        Text(text = subtitle, color = TaloTextSecondary, fontSize = 13.5.sp, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(22.dp))
         content()
     }
@@ -2699,7 +2693,7 @@ fun ScreenCalibrationOverlay(
             Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = "Ajustez le format d'image de votre t\u00E9l\u00E9viseur jusqu'\u00E0 ce que les 4 rep\u00E8res blancs soient visibles.",
-                color = AppleTextSecondary,
+                color = TaloTextSecondary,
                 fontSize = 15.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.width(520.dp)
@@ -2771,8 +2765,8 @@ fun ScreenMirroringWaitingOverlay(
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = "Sur votre iPhone, iPad, Mac ou appareil Android / PC, ouvrez le centre de contr\u00F4le et s\u00E9lectionnez \"$deviceName\".",
-                color = AppleTextSecondary,
+                text = "Sur votre smartphone, tablette ou PC, ouvrez votre application de diffusion et s\u00E9lectionnez \"$deviceName\".",
+                color = TaloTextSecondary,
                 fontSize = 14.5.sp,
                 textAlign = TextAlign.Center
             )

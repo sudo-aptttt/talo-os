@@ -1,4 +1,4 @@
-package com.talotv.os.ui.screens
+﻿package com.talotv.os.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -46,12 +46,12 @@ import androidx.compose.ui.unit.sp
 import com.talotv.os.TaloApplication
 import com.talotv.os.core.media.ContentRepository
 import com.talotv.os.core.media.DockAppItem
-import com.talotv.os.ui.components.AppleTvAppIcon
+import com.talotv.os.ui.components.TaloAppIcon
 import com.talotv.os.ui.components.SearchGlassIcon
-import com.talotv.os.ui.theme.AppleGlassBackground
-import com.talotv.os.ui.theme.AppleGlassBorder
-import com.talotv.os.ui.theme.AppleTextPrimary
-import com.talotv.os.ui.theme.AppleTextSecondary
+import com.talotv.os.ui.theme.TaloGlassBackground
+import com.talotv.os.ui.theme.TaloGlassBorder
+import com.talotv.os.ui.theme.TaloTextPrimary
+import com.talotv.os.ui.theme.TaloTextSecondary
 
 @Composable
 fun SearchScreen(
@@ -107,7 +107,7 @@ fun SearchScreen(
                     .padding(8.dp)
             ) {
                 Text(text = "‹", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Light)
-                Text(text = "Recherche", color = AppleTextPrimary, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                Text(text = "Recherche", color = TaloTextPrimary, fontSize = 28.sp, fontWeight = FontWeight.Bold)
             }
 
             // Search Bar Input Container
@@ -116,8 +116,8 @@ fun SearchScreen(
                     .width(420.dp)
                     .height(48.dp)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(AppleGlassBackground)
-                    .border(BorderStroke(1.2.dp, AppleGlassBorder), RoundedCornerShape(24.dp))
+                    .background(TaloGlassBackground)
+                    .border(BorderStroke(1.2.dp, TaloGlassBorder), RoundedCornerShape(24.dp))
                     .padding(horizontal = 18.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
@@ -125,10 +125,10 @@ fun SearchScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    SearchGlassIcon(size = 20.dp, tint = AppleTextSecondary)
+                    SearchGlassIcon(size = 20.dp, tint = TaloTextSecondary)
                     Text(
                         text = if (searchQuery.isEmpty()) "Rechercher une application ou un film…" else searchQuery,
-                        color = if (searchQuery.isEmpty()) AppleTextSecondary else Color.White,
+                        color = if (searchQuery.isEmpty()) TaloTextSecondary else Color.White,
                         fontSize = 15.sp
                     )
                 }
@@ -149,11 +149,11 @@ fun SearchScreen(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
-                        .background(if (isSelected) Color.White else if (isFocused) Color(0x33FFFFFF) else AppleGlassBackground)
+                        .background(if (isSelected) Color.White else if (isFocused) Color(0x33FFFFFF) else TaloGlassBackground)
                         .border(
                             BorderStroke(
                                 if (isFocused) 2.dp else 1.dp,
-                                if (isFocused) Color.White else AppleGlassBorder
+                                if (isFocused) Color.White else TaloGlassBorder
                             ),
                             RoundedCornerShape(20.dp)
                         )
@@ -179,7 +179,7 @@ fun SearchScreen(
         // Search Results Grid
         Text(
             text = "Résultats (${filteredApps.size})",
-            color = AppleTextSecondary,
+            color = TaloTextSecondary,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(bottom = 16.dp)
@@ -217,11 +217,11 @@ fun SearchResultCard(
             .scale(if (isFocused) 1.08f else 1.0f)
             .height(90.dp)
             .clip(RoundedCornerShape(18.dp))
-            .background(if (isFocused) Color(0x55FFFFFF) else AppleGlassBackground)
+            .background(if (isFocused) Color(0x55FFFFFF) else TaloGlassBackground)
             .border(
                 BorderStroke(
                     width = if (isFocused) 3.dp else 1.dp,
-                    color = if (isFocused) Color.White else AppleGlassBorder
+                    color = if (isFocused) Color.White else TaloGlassBorder
                 ),
                 RoundedCornerShape(18.dp)
             )
@@ -249,7 +249,7 @@ fun SearchResultCard(
                         modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp))
                     )
                 } else {
-                    AppleTvAppIcon(iconType = app.iconType, size = 28.dp)
+                    TaloAppIcon(iconType = app.iconType, size = 28.dp)
                 }
             }
 
@@ -262,7 +262,7 @@ fun SearchResultCard(
                 )
                 Text(
                     text = app.category,
-                    color = AppleTextSecondary,
+                    color = TaloTextSecondary,
                     fontSize = 12.sp
                 )
             }

@@ -18,7 +18,7 @@ data class UpNextItem(
     val id: String,
     val title: String,
     val subtitle: String,
-    val progress: Float? = null, // 0.0 to 1.0 (draws Apple progress bar)
+    val progress: Float? = null, // 0.0 to 1.0 (draws progress bar)
     val gradientColors: List<Long>,
     val targetPackage: String = ""
 )
@@ -39,7 +39,7 @@ enum class DockIconType {
     TV,
     ARCADE,
     FITNESS,
-    FACETIME,
+    CALLS,
     MUSIC,
     DISNEY,
     NETFLIX,

@@ -31,8 +31,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.talotv.os.core.media.MediaSpotlight
-import com.talotv.os.ui.theme.AppleTextPrimary
-import com.talotv.os.ui.theme.AppleTextSecondary
+import com.talotv.os.ui.theme.TaloTextPrimary
+import com.talotv.os.ui.theme.TaloTextSecondary
 
 @Composable
 fun TopShelfSpotlight(
@@ -64,7 +64,7 @@ fun TopShelfSpotlight(
             )
         }
 
-        // Apple Scrim Overlays (Darken bottom for dock legibility, top for floating status bar)
+        // Scrim Overlays (Darken bottom for dock legibility, top for floating status bar)
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -97,7 +97,7 @@ fun TopShelfSpotlight(
                 )
         )
 
-        // Spotlight App Title Typography (Clean Apple TV Large Display Title)
+        // Spotlight App Title Typography (Clean Large Display Title)
         Column(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -106,7 +106,7 @@ fun TopShelfSpotlight(
         ) {
             Text(
                 text = spotlight.title,
-                color = AppleTextPrimary,
+                color = TaloTextPrimary,
                 fontSize = 52.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = (-1.5).sp,
@@ -117,7 +117,7 @@ fun TopShelfSpotlight(
 }
 
 /**
- * Apple TV Upward Chevron Indicator placed directly above the floating glass dock.
+ * Upward Chevron Indicator placed directly above the floating glass dock.
  */
 @Composable
 fun UpwardChevronIndicator(

@@ -45,8 +45,8 @@ import androidx.compose.ui.unit.sp
 import com.talotv.os.TaloApplication
 import com.talotv.os.core.media.ContentRepository
 import com.talotv.os.core.media.UpNextItem
-import com.talotv.os.ui.theme.AppleTextPrimary
-import com.talotv.os.ui.theme.AppleTextSecondary
+import com.talotv.os.ui.theme.TaloTextPrimary
+import com.talotv.os.ui.theme.TaloTextSecondary
 
 @Composable
 fun UpNextRow(
@@ -58,7 +58,7 @@ fun UpNextRow(
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = "À suivre",
-            color = AppleTextPrimary,
+            color = TaloTextPrimary,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(start = 56.dp, bottom = 14.dp)
@@ -172,7 +172,7 @@ fun UpNextCard(
                     .background(Color.Black.copy(alpha = 0.6f)),
                 contentAlignment = Alignment.Center
             ) {
-                AppleTvAppIcon(iconType = com.talotv.os.core.media.DockIconType.TV, size = 16.dp)
+                TaloAppIcon(iconType = com.talotv.os.core.media.DockIconType.TV, size = 16.dp)
             }
 
             // In-Progress Bar (matching CODA card on User Image 1)
@@ -201,14 +201,14 @@ fun UpNextCard(
         // Titles below Card
         Text(
             text = item.title,
-            color = if (isFocused) Color.White else AppleTextPrimary,
+            color = if (isFocused) Color.White else TaloTextPrimary,
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold
         )
 
         Text(
             text = item.subtitle,
-            color = AppleTextSecondary,
+            color = TaloTextSecondary,
             fontSize = 12.5.sp,
             fontWeight = FontWeight.Normal
         )

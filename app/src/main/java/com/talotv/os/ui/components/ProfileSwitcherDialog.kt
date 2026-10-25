@@ -35,11 +35,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.talotv.os.TaloApplication
 import com.talotv.os.core.profile.UserProfile
-import com.talotv.os.ui.theme.AppleGlassBackground
-import com.talotv.os.ui.theme.AppleGlassBorder
-import com.talotv.os.ui.theme.AppleGreen
-import com.talotv.os.ui.theme.AppleTextPrimary
-import com.talotv.os.ui.theme.AppleTextSecondary
+import com.talotv.os.ui.theme.TaloGlassBackground
+import com.talotv.os.ui.theme.TaloGlassBorder
+import com.talotv.os.ui.theme.TaloGreen
+import com.talotv.os.ui.theme.TaloTextPrimary
+import com.talotv.os.ui.theme.TaloTextSecondary
 
 @Composable
 fun ProfileSwitcherDialog(
@@ -50,13 +50,13 @@ fun ProfileSwitcherDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Apple TV Floating Frosted Glass Card (matching User Image 4)
+    // Floating Frosted Glass Card
     Box(
         modifier = modifier
             .width(360.dp)
             .clip(RoundedCornerShape(28.dp))
             .background(Color(0xE61C1D24))
-            .border(BorderStroke(1.2.dp, AppleGlassBorder), RoundedCornerShape(28.dp))
+            .border(BorderStroke(1.2.dp, TaloGlassBorder), RoundedCornerShape(28.dp))
             .padding(24.dp)
     ) {
         Column {
@@ -77,7 +77,7 @@ fun ProfileSwitcherDialog(
                 )
                 Text(
                     text = "Changer d'utilisateur",
-                    color = AppleTextPrimary,
+                    color = TaloTextPrimary,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -145,7 +145,7 @@ fun ProfileAvatarItem(
                     .border(
                         BorderStroke(
                             width = if (isFocused) 3.5.dp else if (isActive) 2.dp else 1.dp,
-                            color = if (isFocused) Color.White else if (isActive) AppleGreen else Color(0x33FFFFFF)
+                            color = if (isFocused) Color.White else if (isActive) TaloGreen else Color(0x33FFFFFF)
                         ),
                         CircleShape
                     ),
@@ -159,13 +159,13 @@ fun ProfileAvatarItem(
                 )
             }
 
-            // Green Checkmark Badge for Active Profile (matching User Image 4)
+            // Green Checkmark Badge for Active Profile
             if (isActive) {
                 Box(
                     modifier = Modifier
                         .size(24.dp)
                         .clip(CircleShape)
-                        .background(AppleGreen)
+                        .background(TaloGreen)
                         .border(BorderStroke(2.dp, Color(0xFF1C1D24)), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
@@ -183,7 +183,7 @@ fun ProfileAvatarItem(
 
         Text(
             text = profile.name,
-            color = if (isFocused) Color.White else AppleTextSecondary,
+            color = if (isFocused) Color.White else TaloTextSecondary,
             fontSize = 13.5.sp,
             fontWeight = if (isActive || isFocused) FontWeight.Bold else FontWeight.Medium
         )
@@ -230,7 +230,7 @@ fun AddProfileItem(onClick: () -> Unit) {
 
         Text(
             text = "Nouveau profil",
-            color = if (isFocused) Color.White else AppleTextSecondary,
+            color = if (isFocused) Color.White else TaloTextSecondary,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium
         )

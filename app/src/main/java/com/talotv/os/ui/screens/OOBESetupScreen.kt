@@ -211,7 +211,7 @@ fun OOBESetupScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        // QR Code Graphic Placeholder (Apple Style)
+                        // QR Code Graphic Placeholder
                         Box(
                             modifier = Modifier
                                 .size(180.dp)

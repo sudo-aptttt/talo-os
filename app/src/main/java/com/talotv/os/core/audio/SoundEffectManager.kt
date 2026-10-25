@@ -25,11 +25,11 @@ class SoundEffectManager(context: Context) {
     }
 
     fun isSoundEnabled(): Boolean {
-        return prefs.getBoolean("tvos_sound_enabled", true)
+        return prefs.getBoolean("sound_fx_enabled", true)
     }
 
     fun setSoundEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean("tvos_sound_enabled", enabled).apply()
+        prefs.edit().putBoolean("sound_fx_enabled", enabled).apply()
     }
 
     fun playFocusSound() {

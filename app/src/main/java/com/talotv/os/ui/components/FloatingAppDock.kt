@@ -41,8 +41,8 @@ import com.talotv.os.TaloApplication
 import com.talotv.os.core.media.ContentRepository
 import com.talotv.os.core.media.DockAppItem
 import com.talotv.os.core.media.DockIconType
-import com.talotv.os.ui.theme.AppleGlassBackground
-import com.talotv.os.ui.theme.AppleGlassBorder
+import com.talotv.os.ui.theme.TaloGlassBackground
+import com.talotv.os.ui.theme.TaloGlassBorder
 
 @Composable
 fun FloatingAppDock(
@@ -54,13 +54,13 @@ fun FloatingAppDock(
     onAppSelected: (DockAppItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Apple TV Floating Glass Capsule Container spanning full width
+    // Talo Floating Glass Capsule Container spanning full width
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(32.dp))
-            .background(AppleGlassBackground)
+            .background(TaloGlassBackground)
             .border(
-                BorderStroke(1.2.dp, AppleGlassBorder),
+                BorderStroke(1.2.dp, TaloGlassBorder),
                 RoundedCornerShape(32.dp)
             )
             .padding(horizontal = 16.dp, vertical = 14.dp)
@@ -105,7 +105,7 @@ fun DockAppTile(
         }
     }
 
-    // Parallax 3D scale animation matching Apple TV
+    // Parallax 3D scale animation matching focused state
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.12f else 1.0f,
         animationSpec = tween(durationMillis = 180),
@@ -200,7 +200,7 @@ fun DockAppTile(
                 )
             }
         } else {
-            AppleTvAppIcon(
+            TaloAppIcon(
                 iconType = app.iconType,
                 size = if (app.iconType == DockIconType.SETTINGS) 58.dp else 46.dp
             )

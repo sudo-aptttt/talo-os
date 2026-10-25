@@ -5,7 +5,7 @@ import android.content.SharedPreferences
 import com.talotv.os.core.apps.InstalledApp
 
 /**
- * Manages the 4 pinned / favorite apps displayed in the left tvOS sidebar drawer.
+ * Manages the 4 pinned / favorite apps displayed in the left sidebar drawer.
  * Supports:
  * - MODE_MOST_USED: dynamically ranks apps by launch frequency
  * - MODE_CUSTOM: user-curated 4 apps selected in Settings

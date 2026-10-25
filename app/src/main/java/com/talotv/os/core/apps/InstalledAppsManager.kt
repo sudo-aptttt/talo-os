@@ -170,8 +170,8 @@ class InstalledAppsManager(private val context: Context) {
     }
 
     /**
-     * Supplies Apple TV-style Floating Dock apps STRICTLY from apps PHYSICALLY INSTALLED on this TV.
-     * Takes up to 5 apps for the signature single-line Apple TV dock.
+     * Supplies Floating Dock apps STRICTLY from apps PHYSICALLY INSTALLED on this TV.
+     * Takes up to 5 apps for the signature single-line dock.
      * Guaranteed: ZERO phantom or uninstalled apps!
      */
     fun getDockApps(): List<DockAppItem> {

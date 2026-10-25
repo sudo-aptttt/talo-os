@@ -110,7 +110,7 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
-        <!-- Remote Lock Overlay Service (Apple Lost Mode style lock screen) -->
+        <!-- Remote Lock Overlay Service (Lost Mode lock screen) -->
         <service
             android:name=".core.security.RemoteLockOverlayService"
             android:enabled="true"

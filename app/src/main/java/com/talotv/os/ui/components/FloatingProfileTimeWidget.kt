@@ -51,7 +51,7 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Floating Top-Right Widget for Apple tvOS layout:
+ * Floating Top-Right Widget for Talo TV layout:
  * - Current Time on the left (HH:mm)
  * - Current Profile Picture (PP) on the right (clickable to switch profile)
  * - D-Pad down navigates to dock, D-Pad left opens sidebar drawer

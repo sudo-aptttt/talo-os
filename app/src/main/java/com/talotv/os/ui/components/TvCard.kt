@@ -45,14 +45,14 @@ fun TvCard(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    // Trigger subtle tvOS audio click on focus change
+    // Trigger subtle navigation audio click on focus change
     LaunchedEffect(isFocused) {
         if (isFocused) {
             TaloApplication.instance.soundEffectManager.playFocusSound()
         }
     }
 
-    // Scale animation (Apple TV subtle tilt/zoom)
+    // Scale animation (subtle focus zoom)
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.08f else 1.0f,
         animationSpec = tween(durationMillis = 200),

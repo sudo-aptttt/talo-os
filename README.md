@@ -1,6 +1,6 @@
 # 📺 Talo OS — Application Lanceur TV Haut de Gamme
 
-Application Android TV native (Kotlin + Jetpack Compose for TV) conçue pour transformer n'importe quel boîtier TV (Fire TV, Google TV, Nvidia Shield, Xiaomi TV) en une expérience pure, fluide, sans publicité, inspirée de tvOS (Apple TV).
+Application Android TV native (Kotlin + Jetpack Compose for TV) conçue pour transformer votre boîtier TV (particulièrement optimisée pour le **Google TV Streamer 4K**, ainsi que Fire TV, Nvidia Shield et Xiaomi TV) en une expérience pure, fluide, sans publicité, avec une interface moderne et raffinée.
 
 ---
 
@@ -9,25 +9,27 @@ Application Android TV native (Kotlin + Jetpack Compose for TV) conçue pour tra
 1. **Démarrage Direct (Boot Interceptor)** :
    * S'enregistre en tant que lanceur d'accueil système officiel (`CATEGORY_HOME` / `CATEGORY_LEANBACK_LAUNCHER`).
    * `BootReceiver` sur `BOOT_COMPLETED` pour un démarrage direct à l'allumage.
-   * `HomeKeyAccessibilityService` pour intercepter la touche Accueil des télécommandes Amazon Fire TV en < 30ms.
+   * `HomeKeyAccessibilityService` pour intercepter la touche Accueil des télécommandes en moins de 30ms.
 
 2. **Moteur d'Adaptation Matérielle (Hardware Adaptive Engine)** :
    * Analyse au premier allumage (`ActivityManager.MemoryInfo` et `Display.supportedModes`).
-   * Profils :
-     * **Éco** : RAM ≤ 1.2 Go (Fire TV Lite, Mi Stick). 1080p60 ultra-léger.
-     * **Standard** : RAM 1.5 - 2 Go (Google TV, Fire TV 4K). Flou modéré, animations fluides.
-     * **Ultra** : RAM ≥ 3 Go (Shield TV Pro). Effets de verre temps réel, 4K cinématique.
+   * Profils dynamiques :
+     * **Éco** : RAM ≤ 1.2 Go (Fire TV Lite, Mi Stick). Rendu 1080p60 ultra-léger.
+     * **Standard** : RAM 1.5 - 2 Go (Google TV standard). Flou modéré, animations fluides.
+     * **Ultra** : RAM ≥ 3 Go (Google TV Streamer 4K, Shield TV Pro). Effets de verre en temps réel, 4K cinématique.
      * **Personnalisé** : Réglage unitaire de chaque paramètre graphique.
 
 3. **Préservation Intégrale Widevine L1 & Codecs 4K** :
-   * Lance les applications officielles (Netflix, Disney+, Prime, Freebox OQEE, SFR TV, YouTube) via des intents natifs pour préserver les flux 4K HDR, Dolby Vision et Dolby Atmos.
+   * Lance les applications officielles (Netflix, Disney+, Prime Video, OQEE by Free, YouTube, etc.) via des intents natifs pour préserver les flux 4K HDR, Dolby Vision et Dolby Atmos sans altérer les certifications Google.
 
-4. **Appairage Immédiat Sans Saisie Télécommande** :
-   * Écran d'accueil avec QR Code et code à 6 caractères (ex: `TALO-842`).
-   * L'utilisateur valide sur `https://talo-tv.studio.ynh.fr/connect` depuis son smartphone.
+4. **Expérience TV Sans Publicité** :
+   * Page d'accueil épurée sans bannières publicitaires ni recommandations sponsorisées.
+   * TopShelf dynamique mettant en avant vos contenus préférés.
+   * Dock flottant et tiroir latéral d'accès rapide.
 
-5. **Mode Perdu & Verrouillage à Distance** :
-   * `RemoteLockOverlayService` affiche un écran plein écran infranchissable si le téléviseur est verrouillé à distance depuis le site web.
+5. **Sécurité Intégrée & Mode Perdu** :
+   * `RemoteLockOverlayService` affiche un écran plein écran infranchissable si l'appareil doit être verrouillé à distance ou protégé par code PIN.
+   * Chiffrement local des préférences sensibles.
 
 ---
 
@@ -43,3 +45,10 @@ Application Android TV native (Kotlin + Jetpack Compose for TV) conçue pour tra
 ./gradlew assembleRelease
 ```
 L'APK se trouvera dans `app/build/outputs/apk/release/app-release.apk`.
+
+---
+
+## 📄 Licence
+
+Ce projet est distribué sous la licence **PolyForm Noncommercial License 1.0.0**.  
+Toute utilisation, modification et contribution non commerciale est autorisée. La revente commerciale est strictement interdite.

@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.talotv.os.core.media.DockIconType
 
 @Composable
-fun AppleTvAppIcon(
+fun TaloAppIcon(
     iconType: DockIconType,
     modifier: Modifier = Modifier,
     size: Dp = 48.dp,
@@ -31,8 +31,8 @@ fun AppleTvAppIcon(
         when (iconType) {
             DockIconType.TV -> TvAppIcon(size = size, tint = tint ?: Color.White)
             DockIconType.ARCADE -> ArcadeAppIcon(size = size)
-            DockIconType.FITNESS -> FitnessRingsIcon(size = size)
-            DockIconType.FACETIME -> FaceTimeAppIcon(size = size)
+            DockIconType.FITNESS -> FitnessAppIcon(size = size)
+            DockIconType.CALLS -> VideoCallAppIcon(size = size)
             DockIconType.MUSIC -> MusicNoteIcon(size = size)
             DockIconType.DISNEY -> DisneyPlusIcon(size = size)
             DockIconType.NETFLIX -> NetflixRibbonIcon(size = size)
@@ -43,7 +43,7 @@ fun AppleTvAppIcon(
             DockIconType.SEARCH -> SearchGlassIcon(size = size, tint = tint ?: Color.White)
             DockIconType.PHOTOS -> PhotosFlowerIcon(size = size)
             DockIconType.PODCASTS -> PodcastsWaveIcon(size = size)
-            DockIconType.STORE -> AppStoreIcon(size = size)
+            DockIconType.STORE -> StoreAppIcon(size = size)
         }
     }
 }
@@ -54,7 +54,7 @@ fun TvAppIcon(size: Dp, tint: Color = Color.White) {
         val w = this.size.width
         val h = this.size.height
 
-        // Apple / Talo House Silhouette
+        // Talo TV House Silhouette
         val housePath = Path().apply {
             moveTo(w * 0.5f, h * 0.22f)
             lineTo(w * 0.78f, h * 0.44f)
@@ -108,62 +108,63 @@ fun ArcadeAppIcon(size: Dp) {
 }
 
 @Composable
-fun FitnessRingsIcon(size: Dp) {
+fun FitnessAppIcon(size: Dp) {
     Canvas(modifier = Modifier.size(size)) {
         val w = this.size.width
         val h = this.size.height
-        val center = Offset(w * 0.5f, h * 0.5f)
-        val strokeW = w * 0.075f
+        val stroke = w * 0.09f
 
-        // Red Outer Ring (Move)
-        drawCircle(
-            color = Color(0xFFFA114F),
-            radius = w * 0.40f,
-            center = center,
-            style = Stroke(width = strokeW, cap = StrokeCap.Round)
+        // Dumbbell / Fitness Graphic
+        // Left Weight
+        drawRoundRect(
+            color = Color(0xFF34C759),
+            topLeft = Offset(w * 0.20f, h * 0.30f),
+            size = Size(w * 0.12f, h * 0.40f),
+            cornerRadius = CornerRadius(w * 0.04f, w * 0.04f)
         )
 
-        // Green Middle Ring (Exercise)
-        drawCircle(
-            color = Color(0xFFAAFE07),
-            radius = w * 0.28f,
-            center = center,
-            style = Stroke(width = strokeW, cap = StrokeCap.Round)
+        // Right Weight
+        drawRoundRect(
+            color = Color(0xFF34C759),
+            topLeft = Offset(w * 0.68f, h * 0.30f),
+            size = Size(w * 0.12f, h * 0.40f),
+            cornerRadius = CornerRadius(w * 0.04f, w * 0.04f)
         )
 
-        // Cyan Inner Ring (Stand)
-        drawCircle(
-            color = Color(0xFF00F0FF),
-            radius = w * 0.16f,
-            center = center,
-            style = Stroke(width = strokeW, cap = StrokeCap.Round)
+        // Center Bar
+        drawLine(
+            color = Color.White,
+            start = Offset(w * 0.30f, h * 0.50f),
+            end = Offset(w * 0.70f, h * 0.50f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round
         )
     }
 }
 
 @Composable
-fun FaceTimeAppIcon(size: Dp) {
+fun VideoCallAppIcon(size: Dp) {
     Canvas(modifier = Modifier.size(size)) {
         val w = this.size.width
         val h = this.size.height
 
-        // Video Camera Body
+        // Video Camera body
         drawRoundRect(
             color = Color.White,
-            topLeft = Offset(w * 0.18f, h * 0.3f),
-            size = Size(w * 0.44f, h * 0.4f),
+            topLeft = Offset(w * 0.18f, h * 0.28f),
+            size = Size(w * 0.44f, h * 0.44f),
             cornerRadius = CornerRadius(w * 0.08f, w * 0.08f)
         )
 
-        // Camera Lens Triangle
-        val lensPath = Path().apply {
-            moveTo(w * 0.66f, h * 0.38f)
-            lineTo(w * 0.84f, h * 0.28f)
-            lineTo(w * 0.84f, h * 0.72f)
-            lineTo(w * 0.66f, h * 0.62f)
+        // Camera lens triangle
+        val trianglePath = Path().apply {
+            moveTo(w * 0.65f, h * 0.38f)
+            lineTo(w * 0.82f, h * 0.28f)
+            lineTo(w * 0.82f, h * 0.72f)
+            lineTo(w * 0.65f, h * 0.62f)
             close()
         }
-        drawPath(lensPath, color = Color.White)
+        drawPath(trianglePath, color = Color.White)
     }
 }
 
@@ -172,19 +173,47 @@ fun MusicNoteIcon(size: Dp) {
     Canvas(modifier = Modifier.size(size)) {
         val w = this.size.width
         val h = this.size.height
+        val stroke = w * 0.09f
 
-        // Music Eighth Note
-        val notePath = Path().apply {
-            moveTo(w * 0.45f, h * 0.65f)
-            lineTo(w * 0.45f, h * 0.22f)
-            lineTo(w * 0.75f, h * 0.15f)
-            lineTo(w * 0.75f, h * 0.58f)
-        }
-        drawPath(notePath, color = Color.White, style = Stroke(width = w * 0.08f, cap = StrokeCap.Round))
+        // Note 1 Head
+        drawCircle(
+            color = Color.White,
+            radius = w * 0.12f,
+            center = Offset(w * 0.32f, h * 0.70f)
+        )
+        // Note 2 Head
+        drawCircle(
+            color = Color.White,
+            radius = w * 0.12f,
+            center = Offset(w * 0.70f, h * 0.60f)
+        )
 
-        // Note Heads
-        drawCircle(color = Color.White, radius = w * 0.12f, center = Offset(w * 0.36f, h * 0.68f))
-        drawCircle(color = Color.White, radius = w * 0.12f, center = Offset(w * 0.66f, h * 0.62f))
+        // Left Stem
+        drawLine(
+            color = Color.White,
+            start = Offset(w * 0.41f, h * 0.70f),
+            end = Offset(w * 0.41f, h * 0.28f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round
+        )
+
+        // Right Stem
+        drawLine(
+            color = Color.White,
+            start = Offset(w * 0.79f, h * 0.60f),
+            end = Offset(w * 0.79f, h * 0.20f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round
+        )
+
+        // Top Connecting Beam
+        drawLine(
+            color = Color.White,
+            start = Offset(w * 0.40f, h * 0.28f),
+            end = Offset(w * 0.80f, h * 0.20f),
+            strokeWidth = stroke * 1.5f,
+            cap = StrokeCap.Round
+        )
     }
 }
 
@@ -194,30 +223,35 @@ fun DisneyPlusIcon(size: Dp) {
         val w = this.size.width
         val h = this.size.height
 
-        // Iconic Disney Swoosh Arc
+        // Disney Arc Swirl
         drawArc(
             color = Color.White,
             startAngle = 180f,
-            sweepAngle = 140f,
+            sweepAngle = 120f,
             useCenter = false,
-            topLeft = Offset(w * 0.15f, h * 0.22f),
-            size = Size(w * 0.7f, h * 0.6f),
+            topLeft = Offset(w * 0.15f, h * 0.20f),
+            size = Size(w * 0.7f, h * 0.65f),
             style = Stroke(width = w * 0.08f, cap = StrokeCap.Round)
         )
 
-        // Plus Sign
+        // Plus symbol
+        val plusX = w * 0.75f
+        val plusY = h * 0.40f
+        val arm = w * 0.10f
+        val stroke = w * 0.08f
+
         drawLine(
-            color = Color(0xFF38BDF8),
-            start = Offset(w * 0.78f, h * 0.42f),
-            end = Offset(w * 0.78f, h * 0.58f),
-            strokeWidth = w * 0.06f,
+            color = Color(0xFF1CD6F6),
+            start = Offset(plusX - arm, plusY),
+            end = Offset(plusX + arm, plusY),
+            strokeWidth = stroke,
             cap = StrokeCap.Round
         )
         drawLine(
-            color = Color(0xFF38BDF8),
-            start = Offset(w * 0.70f, h * 0.50f),
-            end = Offset(w * 0.86f, h * 0.50f),
-            strokeWidth = w * 0.06f,
+            color = Color(0xFF1CD6F6),
+            start = Offset(plusX, plusY - arm),
+            end = Offset(plusX, plusY + arm),
+            strokeWidth = stroke,
             cap = StrokeCap.Round
         )
     }
@@ -228,11 +262,33 @@ fun NetflixRibbonIcon(size: Dp) {
     Canvas(modifier = Modifier.size(size)) {
         val w = this.size.width
         val h = this.size.height
+        val colW = w * 0.16f
+        val redPrimary = Color(0xFFE50914)
+        val redShadow = Color(0xFF9E060E)
 
-        // Netflix 'N' Ribbon
-        drawLine(Color.White, Offset(w * 0.3f, h * 0.2f), Offset(w * 0.3f, h * 0.8f), strokeWidth = w * 0.12f, cap = StrokeCap.Square)
-        drawLine(Color.White, Offset(w * 0.7f, h * 0.2f), Offset(w * 0.7f, h * 0.8f), strokeWidth = w * 0.12f, cap = StrokeCap.Square)
-        drawLine(Color(0xFFE50914), Offset(w * 0.3f, h * 0.2f), Offset(w * 0.7f, h * 0.8f), strokeWidth = w * 0.13f, cap = StrokeCap.Square)
+        // Left vertical leg
+        drawRect(
+            color = redShadow,
+            topLeft = Offset(w * 0.25f, h * 0.18f),
+            size = Size(colW, h * 0.64f)
+        )
+
+        // Right vertical leg
+        drawRect(
+            color = redShadow,
+            topLeft = Offset(w * 0.59f, h * 0.18f),
+            size = Size(colW, h * 0.64f)
+        )
+
+        // Center diagonal ribbon (brighter, casting shadow)
+        val diagPath = Path().apply {
+            moveTo(w * 0.25f, h * 0.18f)
+            lineTo(w * 0.25f + colW, h * 0.18f)
+            lineTo(w * 0.59f + colW, h * 0.82f)
+            lineTo(w * 0.59f, h * 0.82f)
+            close()
+        }
+        drawPath(diagPath, color = redPrimary)
     }
 }
 
@@ -242,25 +298,25 @@ fun PrimeVideoIcon(size: Dp) {
         val w = this.size.width
         val h = this.size.height
 
-        // Play Triangle
-        val playPath = Path().apply {
-            moveTo(w * 0.42f, h * 0.32f)
-            lineTo(w * 0.65f, h * 0.48f)
-            lineTo(w * 0.42f, h * 0.64f)
-            close()
-        }
-        drawPath(playPath, color = Color.White)
-
-        // Amazon Smile Arc
+        // Smile Arrow Arc
         drawArc(
             color = Color(0xFF00A8E1),
             startAngle = 20f,
             sweepAngle = 140f,
             useCenter = false,
-            topLeft = Offset(w * 0.25f, h * 0.6f),
-            size = Size(w * 0.5f, h * 0.22f),
-            style = Stroke(width = w * 0.06f, cap = StrokeCap.Round)
+            topLeft = Offset(w * 0.16f, h * 0.36f),
+            size = Size(w * 0.68f, h * 0.36f),
+            style = Stroke(width = w * 0.08f, cap = StrokeCap.Round)
         )
+
+        // Smile Arrowhead
+        val arrowPath = Path().apply {
+            moveTo(w * 0.75f, h * 0.52f)
+            lineTo(w * 0.86f, h * 0.58f)
+            lineTo(w * 0.80f, h * 0.44f)
+            close()
+        }
+        drawPath(arrowPath, color = Color(0xFF00A8E1))
     }
 }
 
@@ -270,22 +326,22 @@ fun YouTubeAppIcon(size: Dp) {
         val w = this.size.width
         val h = this.size.height
 
-        // Red Outer Pill
+        // Red Rounded Screen Badge
         drawRoundRect(
-            color = Color.White,
+            color = Color(0xFFFF0000),
             topLeft = Offset(w * 0.15f, h * 0.26f),
-            size = Size(w * 0.7f, h * 0.48f),
+            size = Size(w * 0.70f, h * 0.48f),
             cornerRadius = CornerRadius(w * 0.14f, w * 0.14f)
         )
 
-        // Red Play Triangle inside
+        // Centered White Triangle Play Button
         val playPath = Path().apply {
             moveTo(w * 0.44f, h * 0.38f)
-            lineTo(w * 0.60f, h * 0.50f)
+            lineTo(w * 0.62f, h * 0.50f)
             lineTo(w * 0.44f, h * 0.62f)
             close()
         }
-        drawPath(playPath, color = Color(0xFFFF0000))
+        drawPath(playPath, color = Color.White)
     }
 }
 
@@ -295,8 +351,19 @@ fun OqeeTvIcon(size: Dp) {
         val w = this.size.width
         val h = this.size.height
 
-        drawCircle(color = Color.White, radius = w * 0.35f, center = Offset(w * 0.5f, h * 0.5f))
-        drawCircle(color = Color(0xFFCC0000), radius = w * 0.20f, center = Offset(w * 0.5f, h * 0.5f))
+        // OQEE Vibrant Magenta/Red Dual Rings
+        drawCircle(
+            color = Color(0xFFE20040),
+            radius = w * 0.34f,
+            center = Offset(w * 0.40f, h * 0.50f),
+            style = Stroke(width = w * 0.10f)
+        )
+        drawCircle(
+            color = Color.White,
+            radius = w * 0.22f,
+            center = Offset(w * 0.62f, h * 0.50f),
+            style = Stroke(width = w * 0.08f)
+        )
     }
 }
 
@@ -306,54 +373,53 @@ fun SettingsGearIcon(size: Dp, tint: Color = Color(0xFF343538)) {
         val w = this.size.width
         val h = this.size.height
         val center = Offset(w * 0.5f, h * 0.5f)
-        val radius = (minOf(w, h) * 0.46f)
-        val darkGear = tint
-        val holeColor = if (darkGear == Color.White) Color(0xFF161720) else Color.White
+        val radius = w * 0.46f
 
-        // 1. Outer Fine Gear Teeth (32 interlocking mechanical teeth)
-        val numTeeth = 32
+        val darkGear = tint
+        val holeColor = Color(0xFF1E1E22)
+
+        // Outer Gear Teeth Rim
+        val numTeeth = 18
         for (i in 0 until numTeeth) {
             val angle = (i * (360f / numTeeth)) * (Math.PI / 180.0)
             val cosA = Math.cos(angle).toFloat()
             val sinA = Math.sin(angle).toFloat()
-            val startX = center.x + (radius * 0.88f) * cosA
-            val startY = center.y + (radius * 0.88f) * sinA
-            val endX = center.x + radius * cosA
-            val endY = center.y + radius * sinA
+            val startX = center.x + (radius * 0.78f) * cosA
+            val startY = center.y + (radius * 0.78f) * sinA
+            val endX = center.x + (radius * 0.98f) * cosA
+            val endY = center.y + (radius * 0.98f) * sinA
 
             drawLine(
                 color = darkGear,
                 start = Offset(startX, startY),
                 end = Offset(endX, endY),
-                strokeWidth = radius * 0.055f,
+                strokeWidth = radius * 0.11f,
                 cap = StrokeCap.Round
             )
         }
 
-        // 2. Outer Solid Rim Ring holding the teeth
+        // Main Solid Outer Wheel
         drawCircle(
             color = darkGear,
-            radius = radius * 0.88f,
-            center = center,
-            style = Stroke(width = radius * 0.08f)
+            radius = radius * 0.80f,
+            center = center
         )
 
-        // Outer concentric groove track
+        // Inner Cutout Ring
         drawCircle(
-            color = darkGear.copy(alpha = 0.55f),
-            radius = radius * 0.78f,
-            center = center,
-            style = Stroke(width = radius * 0.035f)
+            color = holeColor,
+            radius = radius * 0.60f,
+            center = center
         )
 
-        // 3. Central Solid Mechanical Hub
+        // Center Solid Hub
         drawCircle(
             color = darkGear,
             radius = radius * 0.32f,
             center = center
         )
 
-        // 4. Center Hole (inner aperture showing background)
+        // Center Hole
         drawCircle(
             color = holeColor,
             radius = radius * 0.13f,
@@ -367,7 +433,7 @@ fun SettingsGearIcon(size: Dp, tint: Color = Color(0xFF343538)) {
             center = center
         )
 
-        // 5. Three Heavy Radial Spokes at 120° (0°, 120°, 240° matching Apple tvOS reference)
+        // Radial Spokes
         for (i in 0 until 3) {
             val angle = (0f + i * 120f) * (Math.PI / 180.0)
             val cosA = Math.cos(angle).toFloat()
@@ -386,7 +452,7 @@ fun SettingsGearIcon(size: Dp, tint: Color = Color(0xFF343538)) {
             )
         }
 
-        // 6. Concentric Mid-Wheel Ring connecting the spokes
+        // Concentric Mid-Wheel Ring connecting the spokes
         drawCircle(
             color = darkGear,
             radius = radius * 0.62f,
@@ -467,38 +533,31 @@ fun PodcastsWaveIcon(size: Dp) {
 }
 
 @Composable
-fun AppStoreIcon(size: Dp) {
+fun StoreAppIcon(size: Dp) {
     Canvas(modifier = Modifier.size(size)) {
         val w = this.size.width
         val h = this.size.height
-        val stroke = w * 0.11f
+        val stroke = w * 0.09f
 
-        // Iconic crossed sticks of Apple App Store forming an "A"
-        // 1. Diagonal Left stick
-        drawLine(
+        // Clean Modern Shopping / Store Bag
+        // Bag Body
+        drawRoundRect(
             color = Color.White,
-            start = Offset(w * 0.22f, h * 0.80f),
-            end = Offset(w * 0.50f, h * 0.20f),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round
+            topLeft = Offset(w * 0.22f, h * 0.36f),
+            size = Size(w * 0.56f, h * 0.48f),
+            cornerRadius = CornerRadius(w * 0.08f, w * 0.08f),
+            style = Stroke(width = stroke)
         )
 
-        // 2. Diagonal Right stick
-        drawLine(
+        // Bag Handle (Arch)
+        drawArc(
             color = Color.White,
-            start = Offset(w * 0.78f, h * 0.80f),
-            end = Offset(w * 0.50f, h * 0.20f),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round
-        )
-
-        // 3. Horizontal Crossbar stick
-        drawLine(
-            color = Color.White,
-            start = Offset(w * 0.20f, h * 0.62f),
-            end = Offset(w * 0.80f, h * 0.62f),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round
+            startAngle = 180f,
+            sweepAngle = 180f,
+            useCenter = false,
+            topLeft = Offset(w * 0.34f, h * 0.20f),
+            size = Size(w * 0.32f, h * 0.32f),
+            style = Stroke(width = stroke, cap = StrokeCap.Round)
         )
     }
 }
