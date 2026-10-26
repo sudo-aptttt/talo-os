@@ -99,6 +99,7 @@ fun SettingsScreen(
     var selectedIndex by rememberSaveable { mutableIntStateOf(0) }
     var showHelpHub by remember { mutableStateOf(false) }
     var showSystemScreen by remember { mutableStateOf(false) }
+    var showRemotesScreen by remember { mutableStateOf(false) }
     var isRestoringFocus by remember { mutableStateOf(false) }
 
     val categories = SettingsCategory.values()
@@ -106,13 +107,13 @@ fun SettingsScreen(
     val listState = rememberLazyListState()
 
     // Interception de la touche Retour vers l'écran d'accueil quand aucun sous-menu n'est ouvert
-    BackHandler(enabled = !showHelpHub && !showSystemScreen) {
+    BackHandler(enabled = !showHelpHub && !showSystemScreen && !showRemotesScreen) {
         onNavigateBack()
     }
 
     // Gestion du focus sur la liste des réglages (à l'ouverture initiale et lors du retour des sous-écrans)
-    LaunchedEffect(showHelpHub, showSystemScreen) {
-        if (!showHelpHub && !showSystemScreen) {
+    LaunchedEffect(showHelpHub, showSystemScreen, showRemotesScreen) {
+        if (!showHelpHub && !showSystemScreen && !showRemotesScreen) {
             try {
                 listState.scrollToItem(selectedIndex)
             } catch (_: Exception) {}
@@ -220,7 +221,7 @@ fun SettingsScreen(
                             title = category.title,
                             focusRequester = focusRequesters[index],
                             onFocused = {
-                                if (!showHelpHub && !showSystemScreen && !isRestoringFocus) {
+                                if (!showHelpHub && !showSystemScreen && !showRemotesScreen && !isRestoringFocus) {
                                     selectedIndex = index
                                     soundManager.playFocusSound()
                                 }
@@ -236,6 +237,10 @@ fun SettingsScreen(
                                     SettingsCategory.SYSTEM -> {
                                         // Entre dans les Paramètres Système TV
                                         showSystemScreen = true
+                                    }
+                                    SettingsCategory.REMOTES -> {
+                                        // Entre dans les Réglages Télécommandes et Appareils TV
+                                        showRemotesScreen = true
                                     }
                                     else -> {
                                         // À développer progressivement
@@ -268,6 +273,17 @@ fun SettingsScreen(
                     soundManager.playSelectSound()
                     isRestoringFocus = true
                     showSystemScreen = false
+                }
+            )
+        }
+
+        // COUCHE DES RÉGLAGES TÉLÉCOMMANDES ET APPAREILS TV (Superposition fluide)
+        if (showRemotesScreen) {
+            RemotesSettingsScreen(
+                onClose = {
+                    soundManager.playSelectSound()
+                    isRestoringFocus = true
+                    showRemotesScreen = false
                 }
             )
         }
