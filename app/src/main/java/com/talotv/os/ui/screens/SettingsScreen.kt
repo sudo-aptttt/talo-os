@@ -1,6 +1,5 @@
 package com.talotv.os.ui.screens
 
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -23,7 +22,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -31,10 +29,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -45,23 +41,18 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.talotv.os.R
 import com.talotv.os.TaloApplication
-import com.talotv.os.core.audio.SoundEffectManager
-import com.talotv.os.core.security.DeviceFingerprint
-import com.talotv.os.core.system.SystemSettingsController
 import kotlinx.coroutines.delay
 
 // =============================================================================
@@ -104,9 +95,6 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val soundManager = remember { TaloApplication.instance.soundEffectManager }
-    val systemController = remember { SystemSettingsController(context) }
-    val installedAppsManager = remember { TaloApplication.instance.installedAppsManager }
-    val installedApps by installedAppsManager.installedApps.collectAsState()
 
     val versionName = remember {
         try {
@@ -116,7 +104,6 @@ fun SettingsScreen(
             "0.0.1"
         }
     }
-    val fingerprint: String = remember { DeviceFingerprint.getFingerprint(context) }
 
     // Navigation State: 0 = Categories List (Left), 1 = Detail Items (Right)
     var focusColumn by remember { mutableIntStateOf(0) }
@@ -129,76 +116,24 @@ fun SettingsScreen(
     val categoryFocusRequesters = remember { List(categories.size) { FocusRequester() } }
     val itemFocusRequesters = remember { List(15) { FocusRequester() } }
 
-    // Build items for the active category cleanly
-    val categoryItems: List<SettingItem> = remember(activeCategory, installedApps, versionName) {
+    // Catégories entièrement épurées, prêtes à être complétées progressivement
+    val categoryItems: List<SettingItem> = remember(activeCategory) {
         when (activeCategory) {
-            SettingsCategory.GENERAL -> listOf(
-                SettingItem("Nom de l'appareil", systemController.getDeviceModel()),
-                SettingItem("Langue", "Français"),
-                SettingItem("Fuseau horaire", "Europe/Paris (UTC+1)")
-            )
-            SettingsCategory.USERS -> listOf(
-                SettingItem("Profil actif", "Principal"),
-                SettingItem("Comptes associés", "Compte local Talo TV"),
-                SettingItem("Protection parentale", "Désactivée")
-            )
-            SettingsCategory.NETWORK -> listOf(
-                SettingItem("Connexion Wi-Fi", "Connecté"),
-                SettingItem("Nom du réseau", "Bbox-Fib-5G (5 GHz)"),
-                SettingItem("État Internet", "Optimal • Débit vérifié")
-            )
-            SettingsCategory.VIDEO_AUDIO -> listOf(
-                SettingItem("Profil d'affichage", "Ultra • 4K HDR (60 FPS)"),
-                SettingItem("Plage dynamique", "Dolby Vision / HDR10+"),
-                SettingItem("Sortie audio", "HDMI eARC Passthrough (Dolby Atmos)")
-            )
-            SettingsCategory.APPS -> listOf(
-                SettingItem("Applications installées", "${installedApps.size} applications détectées"),
-                SettingItem("Stockage des apps", "Espace disponible vérifié")
-            )
-            SettingsCategory.NOTIFICATIONS -> listOf(
-                SettingItem("Talo OS 0.0.1", "Système opérationnel et à jour"),
-                SettingItem("Mode Perdu", "Bouclier de sécurité infranchissable actif")
-            )
-            SettingsCategory.REMOTES -> listOf(
-                SettingItem("Télécommande principale", "Talo Remote (Connectée)"),
-                SettingItem("Niveau de batterie", "92%")
-            )
-            SettingsCategory.SYSTEM -> listOf(
-                SettingItem("Modèle", systemController.getDeviceModel()),
-                SettingItem("Version Talo OS", versionName),
-                SettingItem("Créateur / Développeur", "sudo-aptttt"),
-                SettingItem("Appareil cible", "Google TV Streamer 4K"),
-                SettingItem("Licence", "PolyForm Noncommercial 1.0.0"),
-                SettingItem(
-                    title = "Redémarrer le système",
-                    isAction = true,
-                    actionText = "Redémarrer",
-                    onClick = {
-                        soundManager.playSelectSound()
-                        Toast.makeText(context, "Redémarrage de Talo OS...", Toast.LENGTH_SHORT).show()
-                    }
-                )
-            )
-            SettingsCategory.HELP -> listOf(
-                SettingItem("Documentation officielle", "https://github.com/sudo-aptttt/talo-tv/wiki"),
-                SettingItem("Code Downloader permanent", "6790525"),
-                SettingItem(
-                    title = "Ouvrir la documentation",
-                    isAction = true,
-                    actionText = "Consulter",
-                    onClick = {
-                        soundManager.playSelectSound()
-                        systemController.openWikiWeb()
-                    }
-                )
-            )
+            SettingsCategory.GENERAL -> emptyList()
+            SettingsCategory.USERS -> emptyList()
+            SettingsCategory.NETWORK -> emptyList()
+            SettingsCategory.VIDEO_AUDIO -> emptyList()
+            SettingsCategory.APPS -> emptyList()
+            SettingsCategory.NOTIFICATIONS -> emptyList()
+            SettingsCategory.REMOTES -> emptyList()
+            SettingsCategory.SYSTEM -> emptyList()
+            SettingsCategory.HELP -> emptyList()
         }
     }
 
     // Back handling
     BackHandler {
-        if (focusColumn == 1) {
+        if (focusColumn == 1 && categoryItems.isNotEmpty()) {
             soundManager.playSelectSound()
             focusColumn = 0
         } else {
@@ -212,7 +147,7 @@ fun SettingsScreen(
         try {
             if (focusColumn == 0) {
                 categoryFocusRequesters.getOrNull(selectedCategoryIndex)?.requestFocus()
-            } else {
+            } else if (categoryItems.isNotEmpty()) {
                 itemFocusRequesters.getOrNull(selectedItemIndex.coerceIn(0, categoryItems.lastIndex))?.requestFocus()
             }
         } catch (_: Exception) {}
@@ -274,11 +209,15 @@ fun SettingsScreen(
                             },
                             onClick = {
                                 soundManager.playSelectSound()
-                                focusColumn = 1
+                                if (categoryItems.isNotEmpty()) {
+                                    focusColumn = 1
+                                }
                             },
                             onRight = {
-                                soundManager.playSelectSound()
-                                focusColumn = 1
+                                if (categoryItems.isNotEmpty()) {
+                                    soundManager.playSelectSound()
+                                    focusColumn = 1
+                                }
                             }
                         )
                     }
@@ -303,25 +242,27 @@ fun SettingsScreen(
                 )
 
                 // Detail Cards List
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    itemsIndexed(categoryItems) { itemIndex, item ->
-                        SettingCardItem(
-                            item = item,
-                            isFocused = (focusColumn == 1 && selectedItemIndex == itemIndex),
-                            focusRequester = itemFocusRequesters.getOrNull(itemIndex),
-                            onFocused = { selectedItemIndex = itemIndex },
-                            onClick = {
-                                soundManager.playSelectSound()
-                                item.onClick()
-                            },
-                            onLeft = {
-                                soundManager.playSelectSound()
-                                focusColumn = 0
-                            }
-                        )
+                if (categoryItems.isNotEmpty()) {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        itemsIndexed(categoryItems) { itemIndex, item ->
+                            SettingCardItem(
+                                item = item,
+                                isFocused = (focusColumn == 1 && selectedItemIndex == itemIndex),
+                                focusRequester = itemFocusRequesters.getOrNull(itemIndex),
+                                onFocused = { selectedItemIndex = itemIndex },
+                                onClick = {
+                                    soundManager.playSelectSound()
+                                    item.onClick()
+                                },
+                                onLeft = {
+                                    soundManager.playSelectSound()
+                                    focusColumn = 0
+                                }
+                            )
+                        }
                     }
                 }
             }
