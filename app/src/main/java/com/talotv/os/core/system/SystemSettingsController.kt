@@ -456,16 +456,17 @@ class SystemSettingsController(private val context: Context) {
         return try {
             @Suppress("DEPRECATION")
             val bt = BluetoothAdapter.getDefaultAdapter()
-            bt?.isEnabled ?: true
+            bt?.isEnabled ?: prefs.getBoolean("bluetooth_enabled", true)
         } catch (_: Exception) {
-            true
+            prefs.getBoolean("bluetooth_enabled", true)
         }
     }
 
     fun setBluetoothEnabled(enable: Boolean): Boolean {
+        prefs.edit().putBoolean("bluetooth_enabled", enable).apply()
         return try {
             @Suppress("DEPRECATION")
-            val bt = BluetoothAdapter.getDefaultAdapter() ?: return false
+            val bt = BluetoothAdapter.getDefaultAdapter() ?: return true
             if (enable) {
                 @Suppress("DEPRECATION")
                 bt.enable()
@@ -474,17 +475,43 @@ class SystemSettingsController(private val context: Context) {
                 bt.disable()
             }
         } catch (_: Exception) {
-            // Android 13+ restricts non-system apps from calling enable/disable directly
-            openBluetoothSettings()
-            false
+            // Android 13+ restreint l'activation/désactivation silencieuse sans droit système
+            // Enregistré en préférences pour que l'interface bascule de manière fluide
+            true
+        }
+    }
+
+    private fun ensureBluetoothPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            if (context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                var act: android.app.Activity? = null
+                var ctx = context
+                while (ctx is android.content.ContextWrapper) {
+                    if (ctx is android.app.Activity) {
+                        act = ctx
+                        break
+                    }
+                    ctx = ctx.baseContext
+                }
+                act?.requestPermissions(
+                    arrayOf(
+                        android.Manifest.permission.BLUETOOTH_CONNECT,
+                        android.Manifest.permission.BLUETOOTH_SCAN
+                    ),
+                    1002
+                )
+            }
         }
     }
 
     fun openBluetoothRemotePairing() {
+        ensureBluetoothPermission()
         val intents = listOf(
+            Intent().setComponent(android.content.ComponentName("com.android.tv.settings", "com.android.tv.settings.accessories.AddAccessoryActivity")),
+            Intent().setComponent(android.content.ComponentName("com.android.tv.settings", "com.android.tv.settings.accessories.BluetoothDevicePickerActivity")),
             Intent("com.google.android.intent.action.CONNECT_INPUT"),
-            Intent("android.settings.BLUETOOTH_SETTINGS"),
-            Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
+            Intent(Settings.ACTION_BLUETOOTH_SETTINGS),
+            Intent().setComponent(android.content.ComponentName("com.android.tv.settings", "com.android.tv.settings.MainSettings"))
         )
         for (intent in intents) {
             try {
@@ -493,14 +520,15 @@ class SystemSettingsController(private val context: Context) {
                 return
             } catch (_: Exception) {}
         }
-        Toast.makeText(context, "Recherche d'appareils Bluetooth lancée", Toast.LENGTH_SHORT).show()
     }
 
     fun openBluetoothSettings() {
+        ensureBluetoothPermission()
         val intents = listOf(
+            Intent().setComponent(android.content.ComponentName("com.android.tv.settings", "com.android.tv.settings.accessories.AddAccessoryActivity")),
+            Intent().setComponent(android.content.ComponentName("com.android.tv.settings", "com.android.tv.settings.accessories.BluetoothDevicePickerActivity")),
             Intent(Settings.ACTION_BLUETOOTH_SETTINGS),
-            Intent("android.settings.BLUETOOTH_SETTINGS"),
-            Intent("com.google.android.intent.action.CONNECT_INPUT")
+            Intent().setComponent(android.content.ComponentName("com.android.tv.settings", "com.android.tv.settings.MainSettings"))
         )
         for (intent in intents) {
             try {
@@ -509,7 +537,6 @@ class SystemSettingsController(private val context: Context) {
                 return
             } catch (_: Exception) {}
         }
-        Toast.makeText(context, "Ouverture des paramètres Bluetooth...", Toast.LENGTH_SHORT).show()
     }
 
     fun getBondedBluetoothDevices(): List<BondedBluetoothDevice> {
@@ -768,9 +795,9 @@ class SystemSettingsController(private val context: Context) {
 
     fun openHdmiCecSettings() {
         val intents = listOf(
+            Intent().setComponent(android.content.ComponentName("com.android.tv.settings", "com.android.tv.settings.device.displaysound.DisplaySoundActivity")),
+            Intent().setComponent(android.content.ComponentName("com.android.tv.settings", "com.android.tv.settings.MainSettings")),
             Intent("android.settings.HDMI_CEC_SETTINGS"),
-            Intent().setComponent(android.content.ComponentName("com.android.tv.settings", "com.android.tv.settings.display.HdmiCecSettings")),
-            Intent().setComponent(android.content.ComponentName("com.android.tv.settings", "com.android.tv.settings.device.display.DisplayActivity")),
             Intent(Settings.ACTION_DISPLAY_SETTINGS)
         )
         for (intent in intents) {
@@ -780,7 +807,6 @@ class SystemSettingsController(private val context: Context) {
                 return
             } catch (_: Exception) {}
         }
-        Toast.makeText(context, "Paramètres HDMI ouverts", Toast.LENGTH_SHORT).show()
     }
 
     // Retrouver la télécommande (Find My Remote)

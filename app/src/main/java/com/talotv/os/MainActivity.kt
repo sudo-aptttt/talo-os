@@ -63,6 +63,9 @@ class MainActivity : ComponentActivity() {
         // Step 16: Background Cloud Sync, Lost Mode & OS Updates on every launch
         CloudSyncManager.startBackgroundSync(this)
 
+        // Request necessary TV system permissions (Bluetooth Connect/Scan on Android 12+)
+        checkAndRequestRequiredPermissions()
+
         val isCalibrated = (application as TaloApplication).profileManager.isCalibrated()
         currentScreen.value = if (isCalibrated) ScreenState.HOME else ScreenState.OOBE
 
@@ -152,6 +155,21 @@ class MainActivity : ComponentActivity() {
             return true
         }
         return super.onKeyDown(keyCode, event)
+    }
+
+    private fun checkAndRequestRequiredPermissions() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            val permissionsToRequest = mutableListOf<String>()
+            if (checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                permissionsToRequest.add(android.Manifest.permission.BLUETOOTH_CONNECT)
+            }
+            if (checkSelfPermission(android.Manifest.permission.BLUETOOTH_SCAN) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                permissionsToRequest.add(android.Manifest.permission.BLUETOOTH_SCAN)
+            }
+            if (permissionsToRequest.isNotEmpty()) {
+                requestPermissions(permissionsToRequest.toTypedArray(), 1002)
+            }
+        }
     }
 }
 
