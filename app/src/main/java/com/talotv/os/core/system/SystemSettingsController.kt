@@ -641,7 +641,6 @@ class SystemSettingsController(private val context: Context) {
                 return
             } catch (_: Exception) {}
         }
-        Toast.makeText(context, "Micrologiciel télécommande vérifié (v28.0.4 - À jour)", Toast.LENGTH_SHORT).show()
     }
 
     fun getConnectedGamepads(): List<GamepadDeviceInfo> {
@@ -715,12 +714,9 @@ class SystemSettingsController(private val context: Context) {
                         @Suppress("DEPRECATION")
                         sysVibrator.vibrate(500)
                     }
-                } else {
-                    Toast.makeText(context, "Signal de vibration transmis à la manette", Toast.LENGTH_SHORT).show()
                 }
             }
-        } catch (e: Exception) {
-            Toast.makeText(context, "Test vibration manette exécuté", Toast.LENGTH_SHORT).show()
+        } catch (_: Exception) {
         }
     }
 

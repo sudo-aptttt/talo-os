@@ -466,12 +466,9 @@ private fun RemotesSubScreen(
             RemotesActionCard(
                 title = "Micrologiciel de la télécommande",
                 description = "Version installée : ${remoteInfo.firmwareVersion}\nVotre télécommande vocale Google TV bénéficie des dernières optimisations de latence et de consommation énergétique.",
-                badgeText = "Vérifier",
-                onReturnLeft = onReturnLeft,
-                onClick = {
-                    soundManager.playSelectSound()
-                    controller.checkRemoteFirmwareUpdate()
-                }
+                badgeText = "À jour",
+                badgeColor = Color(0x28FFFFFF),
+                onReturnLeft = onReturnLeft
             )
         }
 
@@ -499,7 +496,6 @@ private fun BluetoothSubScreen(
     onReturnLeft: () -> Unit
 ) {
     val soundManager = remember { TaloApplication.instance.soundEffectManager }
-    var isBtEnabled by remember { mutableStateOf(controller.isBluetoothEnabled()) }
     var pairedDevices by remember { mutableStateOf(controller.getBondedBluetoothDevices()) }
     val deviceName = remember { controller.getDeviceName() }
 
@@ -514,27 +510,12 @@ private fun BluetoothSubScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically)
     ) {
         item {
-            RemotesSwitchCard(
-                title = "Bluetooth",
-                description = "Autorise la connexion sans fil pour vos casques audio, barres de son, enceintes, claviers et souris.",
-                checked = isBtEnabled,
-                focusRequester = firstItemFocusRequester,
-                onReturnLeft = onReturnLeft,
-                onToggle = { enabled ->
-                    soundManager.playSelectSound()
-                    controller.setBluetoothEnabled(enabled)
-                    isBtEnabled = enabled
-                    pairedDevices = controller.getBondedBluetoothDevices()
-                }
-            )
-        }
-
-        item {
             RemotesActionCard(
                 title = "Associer un nouvel accessoire",
                 description = "Rechercher et connecter un casque audio sans fil, une barre de son, un clavier ou une souris Bluetooth.",
                 badgeText = "Rechercher",
                 badgeColor = Color(0xFF34C759),
+                focusRequester = firstItemFocusRequester,
                 onReturnLeft = onReturnLeft,
                 onClick = {
                     soundManager.playSelectSound()
@@ -847,10 +828,6 @@ private fun HdmiCecSubScreen(
     onReturnLeft: () -> Unit
 ) {
     val soundManager = remember { TaloApplication.instance.soundEffectManager }
-    var cecEnabled by remember { mutableStateOf(controller.isHdmiCecEnabled()) }
-    var oneTouchPlay by remember { mutableStateOf(controller.isOneTouchPlayEnabled()) }
-    var systemStandby by remember { mutableStateOf(controller.isSystemStandbyEnabled()) }
-    var volumeControl by remember { mutableStateOf(controller.isCecVolumeControlEnabled()) }
 
     LazyColumn(
         modifier = Modifier
@@ -859,67 +836,35 @@ private fun HdmiCecSubScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically)
     ) {
         item {
-            RemotesSwitchCard(
-                title = "HDMI-CEC (Talo Link)",
-                description = "Permet à Talo OS de communiquer avec votre téléviseur et votre barre de son via le câble HDMI.",
-                checked = cecEnabled,
+            RemotesActionCard(
+                title = "Réglages HDMI-CEC & Affichage TV",
+                description = "Ouvre le panneau système officiel Google TV pour activer ou désactiver le contrôle HDMI (CEC), l'allumage One Touch Play, la mise en veille synchronisée et le contrôle du volume eARC.",
+                badgeText = "Configurer",
+                badgeColor = Color(0xFF34C759),
                 focusRequester = firstItemFocusRequester,
                 onReturnLeft = onReturnLeft,
-                onToggle = { enabled ->
+                onClick = {
                     soundManager.playSelectSound()
-                    controller.setHdmiCecEnabled(enabled)
-                    cecEnabled = enabled
-                }
-            )
-        }
-
-        item {
-            RemotesSwitchCard(
-                title = "Allumage automatique (One Touch Play)",
-                description = "Allume automatiquement votre téléviseur et bascule sur l'entrée HDMI dès que vous activez Talo OS.",
-                checked = oneTouchPlay && cecEnabled,
-                onReturnLeft = onReturnLeft,
-                onToggle = { enabled ->
-                    soundManager.playSelectSound()
-                    controller.setOneTouchPlayEnabled(enabled)
-                    oneTouchPlay = enabled
-                }
-            )
-        }
-
-        item {
-            RemotesSwitchCard(
-                title = "Extinction synchronisée (System Standby)",
-                description = "Met automatiquement en veille votre téléviseur et vos équipements audio lorsque Talo OS s'éteint.",
-                checked = systemStandby && cecEnabled,
-                onReturnLeft = onReturnLeft,
-                onToggle = { enabled ->
-                    soundManager.playSelectSound()
-                    controller.setSystemStandbyEnabled(enabled)
-                    systemStandby = enabled
-                }
-            )
-        }
-
-        item {
-            RemotesSwitchCard(
-                title = "Contrôle du volume TV (eARC)",
-                description = "Permet aux boutons de volume de la télécommande Talo de régler le volume de votre ampli ou téléviseur en HDMI eARC.",
-                checked = volumeControl && cecEnabled,
-                onReturnLeft = onReturnLeft,
-                onToggle = { enabled ->
-                    soundManager.playSelectSound()
-                    controller.setCecVolumeControlEnabled(enabled)
-                    volumeControl = enabled
+                    controller.openHdmiCecSettings()
                 }
             )
         }
 
         item {
             RemotesActionCard(
-                title = "Paramètres HDMI avancés de la TV",
-                description = "Ouvre le menu d'affichage officiel pour régler le format de signal HDMI, le taux de rafraîchissement et l'EDID.",
-                badgeText = "Ouvrir",
+                title = "Fonctionnalités HDMI prises en charge",
+                description = "Communication bidirectionnelle HDMI-CEC avec votre téléviseur, barre de son ou ampli Home Cinema (eARC / ARC).",
+                badgeText = "Talo Link",
+                badgeColor = Color(0x28FFFFFF),
+                onReturnLeft = onReturnLeft
+            )
+        }
+
+        item {
+            RemotesActionCard(
+                title = "Format vidéo et taux de rafraîchissement",
+                description = "Ajuster la résolution d'affichage 4K Ultra HD, le taux de rafraîchissement dynamique (Match Content Frame Rate) et le format audio multicanal.",
+                badgeText = "Affichage & Son",
                 badgeColor = Color(0x35FFFFFF),
                 onReturnLeft = onReturnLeft,
                 onClick = {
