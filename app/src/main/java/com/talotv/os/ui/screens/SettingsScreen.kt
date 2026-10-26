@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -35,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +44,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
@@ -93,11 +96,13 @@ fun SettingsScreen(
         }
     }
 
-    var selectedIndex by remember { mutableIntStateOf(0) }
+    var selectedIndex by rememberSaveable { mutableIntStateOf(0) }
     var showHelpHub by remember { mutableStateOf(false) }
+    var isRestoringFocus by remember { mutableStateOf(false) }
 
     val categories = SettingsCategory.values()
     val focusRequesters = remember { List(categories.size) { FocusRequester() } }
+    val listState = rememberLazyListState()
 
     // Interception de la touche Retour vers l'écran d'accueil quand le hub n'est pas ouvert
     BackHandler(enabled = !showHelpHub) {
@@ -107,10 +112,18 @@ fun SettingsScreen(
     // Gestion du focus sur la liste des réglages (à l'ouverture initiale et lors du retour du Help Hub)
     LaunchedEffect(showHelpHub) {
         if (!showHelpHub) {
-            delay(50)
             try {
-                focusRequesters.getOrNull(selectedIndex)?.requestFocus()
+                listState.scrollToItem(selectedIndex)
             } catch (_: Exception) {}
+            // Répéter l'acquisition du focus sur quelques trames pour devancer le focus fallback automatique
+            repeat(4) {
+                delay(20)
+                try {
+                    focusRequesters.getOrNull(selectedIndex)?.requestFocus()
+                } catch (_: Exception) {}
+            }
+            delay(50)
+            isRestoringFocus = false
         }
     }
 
@@ -194,22 +207,25 @@ fun SettingsScreen(
 
                 // COLONNE DROITE : Liste verticale des 9 catégories avec flèches
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier
                         .weight(1.2f)
                         .fillMaxHeight(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     itemsIndexed(categories) { index, category ->
                         SettingsMenuItem(
                             title = category.title,
-                            isFocused = (selectedIndex == index),
                             focusRequester = focusRequesters[index],
                             onFocused = {
-                                selectedIndex = index
-                                soundManager.playFocusSound()
+                                if (!showHelpHub && !isRestoringFocus) {
+                                    selectedIndex = index
+                                    soundManager.playFocusSound()
+                                }
                             },
                             onClick = {
+                                selectedIndex = index
                                 soundManager.playSelectSound()
                                 when (category) {
                                     SettingsCategory.HELP -> {
@@ -233,6 +249,7 @@ fun SettingsScreen(
                 versionName = versionName,
                 onClose = {
                     soundManager.playSelectSound()
+                    isRestoringFocus = true
                     showHelpHub = false
                 }
             )
@@ -247,39 +264,33 @@ fun SettingsScreen(
 @Composable
 private fun SettingsMenuItem(
     title: String,
-    isFocused: Boolean,
     focusRequester: FocusRequester,
     onFocused: () -> Unit,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val actualFocus by interactionSource.collectIsFocusedAsState()
-    val hasFocus = actualFocus || isFocused
-
-    LaunchedEffect(actualFocus) {
-        if (actualFocus) onFocused()
-    }
+    val isFocused by interactionSource.collectIsFocusedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (hasFocus) 1.02f else 1.0f,
+        targetValue = if (isFocused) 1.02f else 1.0f,
         animationSpec = tween(120),
         label = "menuScale"
     )
 
     val backgroundColor by animateColorAsState(
-        targetValue = if (hasFocus) Color.White else Color(0x24FFFFFF),
+        targetValue = if (isFocused) Color.White else Color(0x24FFFFFF),
         animationSpec = tween(120),
         label = "menuBg"
     )
 
     val contentColor by animateColorAsState(
-        targetValue = if (hasFocus) Color(0xFF0B0C0E) else Color(0xFFF2F2F7),
+        targetValue = if (isFocused) Color(0xFF0B0C0E) else Color(0xFFF2F2F7),
         animationSpec = tween(120),
         label = "menuContent"
     )
 
     val chevronColor by animateColorAsState(
-        targetValue = if (hasFocus) Color(0xFF0B0C0E) else Color(0x60FFFFFF),
+        targetValue = if (isFocused) Color(0xFF0B0C0E) else Color(0x60FFFFFF),
         animationSpec = tween(120),
         label = "chevronColor"
     )
@@ -289,18 +300,23 @@ private fun SettingsMenuItem(
         horizontalArrangement = Arrangement.SpaceBetween,
         modifier = Modifier
             .fillMaxWidth()
-            .height(50.dp)
+            .height(46.dp)
             .scale(scale)
-            .clip(RoundedCornerShape(13.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(backgroundColor)
             .border(
                 BorderStroke(
                     width = 1.dp,
-                    color = if (hasFocus) Color.White else Color(0x10FFFFFF)
+                    color = if (isFocused) Color.White else Color(0x10FFFFFF)
                 ),
-                shape = RoundedCornerShape(13.dp)
+                shape = RoundedCornerShape(12.dp)
             )
             .focusRequester(focusRequester)
+            .onFocusChanged { focusState ->
+                if (focusState.isFocused) {
+                    onFocused()
+                }
+            }
             .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
                     when (keyEvent.key) {
@@ -323,8 +339,8 @@ private fun SettingsMenuItem(
         Text(
             text = title,
             color = contentColor,
-            fontSize = 16.sp,
-            fontWeight = if (hasFocus) FontWeight.SemiBold else FontWeight.Medium,
+            fontSize = 15.sp,
+            fontWeight = if (isFocused) FontWeight.SemiBold else FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -333,7 +349,7 @@ private fun SettingsMenuItem(
             painter = painterResource(id = R.drawable.ic_chevron_right),
             contentDescription = null,
             tint = chevronColor,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(16.dp)
         )
     }
 }
