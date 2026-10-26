@@ -1,12 +1,5 @@
 package com.talotv.os.ui.screens
 
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -34,7 +27,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -63,7 +55,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import com.talotv.os.R
 import com.talotv.os.TaloApplication
 import kotlinx.coroutines.delay
@@ -101,18 +92,18 @@ fun SettingsScreen(
     }
 
     var selectedIndex by remember { mutableIntStateOf(0) }
-    var showWikiViewer by remember { mutableStateOf(false) }
+    var showHelpHub by remember { mutableStateOf(false) }
 
     val categories = SettingsCategory.values()
     val focusRequesters = remember { List(categories.size) { FocusRequester() } }
 
-    // Si le lecteur Wiki intégré est ouvert, on l'affiche en plein écran
-    if (showWikiViewer) {
-        WikiViewerScreen(
-            url = "https://github.com/sudo-aptttt/talo-tv/wiki",
+    // Affichage du Hub d'Aide 100% natif TV (FAQ, raccourcis et QR code)
+    if (showHelpHub) {
+        HelpHubScreen(
+            versionName = versionName,
             onClose = {
                 soundManager.playSelectSound()
-                showWikiViewer = false
+                showHelpHub = false
             }
         )
         return
@@ -229,8 +220,8 @@ fun SettingsScreen(
                                 soundManager.playSelectSound()
                                 when (category) {
                                     SettingsCategory.HELP -> {
-                                        // Ouvre directement le Wiki GitHub dans le lecteur intégré à Talo OS
-                                        showWikiViewer = true
+                                        // Ouvre le Hub d'Aide interactif et optimisé TV
+                                        showHelpHub = true
                                     }
                                     else -> {
                                         // À développer progressivement
@@ -338,24 +329,21 @@ private fun SettingsMenuItem(
 }
 
 /**
- * Lecteur Wiki GitHub intégré à Talo TV
- * Permet de consulter la documentation directement sur le téléviseur même si aucun navigateur n'est installé.
+ * Hub d'Aide 100% Natif TV :
+ * - Section Gauche : QR Code haute résolution à scanner sur smartphone pour le Wiki GitHub complet
+ * - Section Droite : Cartes d'aide interactives navigables à la télécommande (Raccourcis, Updates, Privacy, Assistance)
  */
 @Composable
-private fun WikiViewerScreen(
-    url: String,
+private fun HelpHubScreen(
+    versionName: String,
     onClose: () -> Unit
 ) {
-    var isLoading by remember { mutableStateOf(true) }
-    var webViewRef by remember { mutableStateOf<WebView?>(null) }
+    val soundManager = remember { TaloApplication.instance.soundEffectManager }
     val closeFocusRequester = remember { FocusRequester() }
+    val cardFocusRequesters = remember { List(4) { FocusRequester() } }
 
     BackHandler {
-        if (webViewRef?.canGoBack() == true) {
-            webViewRef?.goBack()
-        } else {
-            onClose()
-        }
+        onClose()
     }
 
     LaunchedEffect(Unit) {
@@ -368,16 +356,26 @@ private fun WikiViewerScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0C0E12))
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF14171E),
+                        Color(0xFF0C0E13),
+                        Color(0xFF07080A)
+                    )
+                )
+            )
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Barre d'en-tête supérieure avec marque et bouton Fermer
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 48.dp, vertical = 20.dp)
+        ) {
+            // EN-TÊTE : Titre du Hub & Bouton Fermer
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp)
-                    .background(Color(0xFF161920))
-                    .padding(horizontal = 32.dp),
+                    .padding(bottom = 18.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -386,36 +384,36 @@ private fun WikiViewerScreen(
                         painter = painterResource(id = R.drawable.talo_os_logo_white),
                         contentDescription = "Talo OS",
                         modifier = Modifier
-                            .width(80.dp)
-                            .height(35.dp)
+                            .width(88.dp)
+                            .height(38.dp)
                     )
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.width(18.dp))
                     Column {
                         Text(
-                            text = "Wiki & Documentation officielle",
+                            text = "Centre d'Aide & Documentation",
                             color = Color.White,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = url,
-                            color = Color(0x70FFFFFF),
-                            fontSize = 11.sp
+                            text = "Talo OS v$versionName • Conçu pour Google TV Streamer 4K",
+                            color = Color(0x80FFFFFF),
+                            fontSize = 12.sp
                         )
                     }
                 }
 
-                // Bouton Fermer (Retour) avec mise au point TV D-Pad
+                // Bouton Fermer (Retour)
                 val interactionSource = remember { MutableInteractionSource() }
                 val isCloseFocused by interactionSource.collectIsFocusedAsState()
 
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(if (isCloseFocused) Color.White else Color(0x28FFFFFF))
                         .border(
                             BorderStroke(1.dp, if (isCloseFocused) Color.White else Color(0x18FFFFFF)),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(12.dp)
                         )
                         .focusRequester(closeFocusRequester)
                         .focusable(interactionSource = interactionSource)
@@ -431,58 +429,201 @@ private fun WikiViewerScreen(
                                 }
                             } else false
                         }
-                        .padding(horizontal = 18.dp, vertical = 8.dp),
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Fermer (Retour)",
                         color = if (isCloseFocused) Color(0xFF0A0A0C) else Color.White,
-                        fontSize = 13.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
             }
 
-            // Indicateur de chargement discret
-            if (isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(3.dp)
-                        .background(Color(0xFF0071E3))
-                )
-            }
-
-            // WebView native affichant le Wiki GitHub
-            AndroidView(
-                factory = { ctx ->
-                    WebView(ctx).apply {
-                        settings.apply {
-                            javaScriptEnabled = true
-                            domStorageEnabled = true
-                            loadWithOverviewMode = true
-                            useWideViewPort = true
-                            cacheMode = WebSettings.LOAD_DEFAULT
-                            userAgentString =
-                                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                        }
-                        setBackgroundColor(android.graphics.Color.parseColor("#0C0E12"))
-                        isFocusable = true
-                        isFocusableInTouchMode = true
-                        webViewClient = object : WebViewClient() {
-                            override fun onPageFinished(view: WebView?, url: String?) {
-                                super.onPageFinished(view, url)
-                                isLoading = false
-                            }
-                        }
-                        webViewRef = this
-                        loadUrl(url)
-                    }
-                },
+            // CORPS : 2 Colonnes équilibrées
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f)
-            )
+                    .fillMaxWidth()
+                    .weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(36.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // COLONNE GAUCHE : Compagnon Mobile avec QR Code Wiki
+                Column(
+                    modifier = Modifier
+                        .weight(0.9f)
+                        .fillMaxHeight(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(28.dp))
+                            .background(Color(0xFF1B1E24))
+                            .border(BorderStroke(1.dp, Color(0x18FFFFFF)), RoundedCornerShape(28.dp))
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "Wiki GitHub Officiel",
+                                color = Color.White,
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Scannez avec votre smartphone pour lire la documentation complète.",
+                                color = Color(0x80FFFFFF),
+                                fontSize = 12.sp,
+                                lineHeight = 16.sp
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Boîte blanche contrastée pour le QR Code
+                            Box(
+                                modifier = Modifier
+                                    .size(190.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(Color.White)
+                                    .padding(10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.qr_wiki),
+                                    contentDescription = "QR Code Wiki",
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Badges pratiques
+                            Text(
+                                text = "github.com/sudo-aptttt/talo-tv/wiki",
+                                color = Color(0xFF0071E3),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Code Downloader : 6790525",
+                                color = Color(0xFF8E8E93),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+
+                // COLONNE DROITE : 4 Cartes d'aide natives navigables au D-Pad
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1.3f)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    item {
+                        HelpCardItem(
+                            title = "Raccourcis Télécommande",
+                            description = "• Accueil (Home) : Revenir directement à Talo OS.\n• Retour (Back) : Quitter l'application en cours.\n• D-Pad (Flèches) : Défilement fluide de l'interface.",
+                            focusRequester = cardFocusRequesters[0],
+                            onFocused = { soundManager.playFocusSound() }
+                        )
+                    }
+
+                    item {
+                        HelpCardItem(
+                            title = "Mises à jour du système",
+                            description = "Talo OS vérifie automatiquement les mises à jour au démarrage. Vous pouvez également réinstaller ou mettre à jour via l'application Downloader avec le code permanent 6790525.",
+                            focusRequester = cardFocusRequesters[1],
+                            onFocused = { soundManager.playFocusSound() }
+                        )
+                    }
+
+                    item {
+                        HelpCardItem(
+                            title = "Confidentialité & Zéro Publicité",
+                            description = "Le bouclier Talo Privacy Shield est actif en temps réel. Il neutralise les traqueurs et SDK publicitaires en arrière-plan sans impacter la qualité de streaming ni le DRM Widevine L1.",
+                            focusRequester = cardFocusRequesters[2],
+                            onFocused = { soundManager.playFocusSound() }
+                        )
+                    }
+
+                    item {
+                        HelpCardItem(
+                            title = "Assistance & Signalement de bogue",
+                            description = "En cas de dysfonctionnement, redémarrez la box depuis Réglages > Système. Pour suggérer des fonctionnalités ou rapporter un souci, rendez-vous sur le dépôt GitHub du projet.",
+                            focusRequester = cardFocusRequesters[3],
+                            onFocused = { soundManager.playFocusSound() }
+                        )
+                    }
+                }
+            }
         }
+    }
+}
+
+/**
+ * Carte d'information native optimisée pour l'écran TV avec navigation D-Pad
+ */
+@Composable
+private fun HelpCardItem(
+    title: String,
+    description: String,
+    focusRequester: FocusRequester,
+    onFocused: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    LaunchedEffect(isFocused) {
+        if (isFocused) onFocused()
+    }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.02f else 1.0f,
+        animationSpec = tween(120),
+        label = "helpCardScale"
+    )
+
+    val bgColor by animateColorAsState(
+        targetValue = if (isFocused) Color(0xFF2C303A) else Color(0x20FFFFFF),
+        animationSpec = tween(120),
+        label = "helpCardBg"
+    )
+
+    val borderColor by animateColorAsState(
+        targetValue = if (isFocused) Color.White else Color(0x14FFFFFF),
+        animationSpec = tween(120),
+        label = "helpCardBorder"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(scale)
+            .clip(RoundedCornerShape(18.dp))
+            .background(bgColor)
+            .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(18.dp))
+            .focusRequester(focusRequester)
+            .focusable(interactionSource = interactionSource)
+            .padding(horizontal = 22.dp, vertical = 16.dp)
+    ) {
+        Text(
+            text = title,
+            color = if (isFocused) Color.White else Color(0xFFF2F2F7),
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = description,
+            color = if (isFocused) Color(0xFFD1D1D6) else Color(0x99FFFFFF),
+            fontSize = 13.sp,
+            lineHeight = 18.sp
+        )
     }
 }
