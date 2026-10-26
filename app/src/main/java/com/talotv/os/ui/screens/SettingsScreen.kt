@@ -374,79 +374,66 @@ private fun HelpHubScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 56.dp, end = 56.dp, top = 36.dp, bottom = 24.dp)
+                .padding(horizontal = 64.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // EN-TÊTE CONFORME GOOGLE TV : Fil d'Ariane & Titre de page
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 22.dp)
-            ) {
-                Text(
-                    text = "Réglages  ›  Aide",
-                    color = Color(0x99FFFFFF),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 0.5.sp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Centre d'Aide & Documentation",
-                    color = Color.White,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            // Titre supérieur centré (Harmonisé avec le premier plan Réglages)
+            Text(
+                text = "Aide",
+                color = Color(0xCCFFFFFF),
+                fontSize = 24.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = 20.dp)
+            )
 
-            // CORPS : 2 Colonnes équilibrées
+            // Section principale : Gauche (Compagnon QR Wiki) | Droite (4 Cartes d'aide)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(36.dp),
+                horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // COLONNE GAUCHE : Compagnon Mobile avec QR Code Wiki
                 Column(
                     modifier = Modifier
-                        .weight(0.9f)
-                        .fillMaxHeight(),
+                        .weight(1f)
+                        .padding(end = 56.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(Color(0xFF1B1E24))
-                            .border(BorderStroke(1.dp, Color(0x18FFFFFF)), RoundedCornerShape(24.dp))
+                            .width(280.dp)
+                            .clip(RoundedCornerShape(32.dp))
+                            .background(Color(0xFF1E2127))
+                            .border(BorderStroke(1.dp, Color(0x18FFFFFF)), RoundedCornerShape(32.dp))
                             .padding(20.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = "Wiki GitHub Officiel",
+                                text = "Wiki GitHub",
                                 color = Color.White,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Scannez avec votre smartphone pour lire la documentation complète.",
+                                text = "Scannez avec votre smartphone",
                                 color = Color(0x80FFFFFF),
                                 fontSize = 12.sp,
-                                lineHeight = 16.sp,
                                 textAlign = TextAlign.Center
                             )
-                            Spacer(modifier = Modifier.height(14.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
 
                             // Boîte blanche contrastée pour le QR Code
                             Box(
                                 modifier = Modifier
-                                    .size(170.dp)
+                                    .size(140.dp)
                                     .clip(RoundedCornerShape(14.dp))
                                     .background(Color.White)
-                                    .padding(8.dp),
+                                    .padding(6.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Image(
@@ -456,20 +443,19 @@ private fun HelpHubScreen(
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(14.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
 
-                            // Badges pratiques
                             Text(
                                 text = "github.com/sudo-aptttt/talo-tv/wiki",
                                 color = Color(0xFF0071E3),
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(3.dp))
                             Text(
                                 text = "Code Downloader : 6790525",
                                 color = Color(0xFF8E8E93),
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -477,17 +463,18 @@ private fun HelpHubScreen(
                 }
 
                 // COLONNE DROITE : 4 Cartes d'aide natives navigables au D-Pad
-                // Flèche Gauche ou Touche Retour ressort du Hub
+                // Flèche Gauche ou Touche Retour ressort immédiatement
                 LazyColumn(
                     modifier = Modifier
-                        .weight(1.3f)
+                        .weight(1.2f)
                         .fillMaxHeight(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     item {
                         HelpCardItem(
                             title = "Raccourcis Télécommande",
-                            description = "• Accueil (Home) : Revenir directement à Talo OS.\n• Retour (Back) : Quitter l'application en cours.\n• D-Pad (Flèches) : Défilement fluide de l'interface.",
+                            description = "• Accueil (Home) : Revenir au tableau de bord\n• Retour (Back) / Flèche Gauche : Revenir en arrière\n• D-Pad (Flèches) : Défilement fluide de l'interface",
                             focusRequester = cardFocusRequesters[0],
                             onFocused = { soundManager.playFocusSound() },
                             onExit = onClose
@@ -497,7 +484,7 @@ private fun HelpHubScreen(
                     item {
                         HelpCardItem(
                             title = "Mises à jour du système",
-                            description = "Talo OS vérifie automatiquement les mises à jour au démarrage. Vous pouvez également réinstaller ou mettre à jour via l'application Downloader avec le code permanent 6790525.",
+                            description = "Talo OS vérifie automatiquement les mises à jour au démarrage. Code Downloader permanent : 6790525.",
                             focusRequester = cardFocusRequesters[1],
                             onFocused = { soundManager.playFocusSound() },
                             onExit = onClose
@@ -507,7 +494,7 @@ private fun HelpHubScreen(
                     item {
                         HelpCardItem(
                             title = "Confidentialité & Zéro Publicité",
-                            description = "Le bouclier Talo Privacy Shield est actif en temps réel. Il neutralise les traqueurs et SDK publicitaires en arrière-plan sans impacter la qualité de streaming ni le DRM Widevine L1.",
+                            description = "Le bouclier Talo Privacy Shield est actif en temps réel. Zéro traqueur, zéro publicité, DRM Widevine L1 préservé.",
                             focusRequester = cardFocusRequesters[2],
                             onFocused = { soundManager.playFocusSound() },
                             onExit = onClose
@@ -517,7 +504,7 @@ private fun HelpHubScreen(
                     item {
                         HelpCardItem(
                             title = "Assistance & Signalement de bogue",
-                            description = "En cas de dysfonctionnement, redémarrez la box depuis Réglages > Système. Pour suggérer des fonctionnalités ou rapporter un souci, rendez-vous sur le dépôt GitHub du projet.",
+                            description = "Redémarrez la box depuis Réglages > Système. Signalez les anomalies sur le dépôt GitHub du projet.",
                             focusRequester = cardFocusRequesters[3],
                             onFocused = { soundManager.playFocusSound() },
                             onExit = onClose
