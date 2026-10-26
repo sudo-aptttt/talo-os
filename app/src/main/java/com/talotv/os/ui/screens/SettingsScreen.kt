@@ -3,6 +3,9 @@ package com.talotv.os.ui.screens
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
@@ -31,12 +34,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -58,6 +63,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.talotv.os.R
 import com.talotv.os.TaloApplication
 import kotlinx.coroutines.delay
@@ -95,8 +101,22 @@ fun SettingsScreen(
     }
 
     var selectedIndex by remember { mutableIntStateOf(0) }
+    var showWikiViewer by remember { mutableStateOf(false) }
+
     val categories = SettingsCategory.values()
     val focusRequesters = remember { List(categories.size) { FocusRequester() } }
+
+    // Si le lecteur Wiki intégré est ouvert, on l'affiche en plein écran
+    if (showWikiViewer) {
+        WikiViewerScreen(
+            url = "https://github.com/sudo-aptttt/talo-tv/wiki",
+            onClose = {
+                soundManager.playSelectSound()
+                showWikiViewer = false
+            }
+        )
+        return
+    }
 
     // Interception de la touche Retour vers l'écran d'accueil
     BackHandler {
@@ -107,7 +127,7 @@ fun SettingsScreen(
     LaunchedEffect(Unit) {
         delay(60)
         try {
-            focusRequesters.getOrNull(0)?.requestFocus()
+            focusRequesters.getOrNull(selectedIndex)?.requestFocus()
         } catch (_: Exception) {}
     }
 
@@ -209,7 +229,8 @@ fun SettingsScreen(
                                 soundManager.playSelectSound()
                                 when (category) {
                                     SettingsCategory.HELP -> {
-                                        openGitHubWiki(context)
+                                        // Ouvre directement le Wiki GitHub dans le lecteur intégré à Talo OS
+                                        showWikiViewer = true
                                     }
                                     else -> {
                                         // À développer progressivement
@@ -221,21 +242,6 @@ fun SettingsScreen(
                 }
             }
         }
-    }
-}
-
-/**
- * Redirection directe vers le Wiki officiel GitHub de Talo TV
- */
-private fun openGitHubWiki(context: Context) {
-    val wikiUrl = "https://github.com/sudo-aptttt/talo-tv/wiki"
-    try {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(wikiUrl)).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        context.startActivity(intent)
-    } catch (_: Exception) {
-        Toast.makeText(context, "Wiki GitHub : $wikiUrl", Toast.LENGTH_LONG).show()
     }
 }
 
@@ -328,5 +334,155 @@ private fun SettingsMenuItem(
             tint = chevronColor,
             modifier = Modifier.size(18.dp)
         )
+    }
+}
+
+/**
+ * Lecteur Wiki GitHub intégré à Talo TV
+ * Permet de consulter la documentation directement sur le téléviseur même si aucun navigateur n'est installé.
+ */
+@Composable
+private fun WikiViewerScreen(
+    url: String,
+    onClose: () -> Unit
+) {
+    var isLoading by remember { mutableStateOf(true) }
+    var webViewRef by remember { mutableStateOf<WebView?>(null) }
+    val closeFocusRequester = remember { FocusRequester() }
+
+    BackHandler {
+        if (webViewRef?.canGoBack() == true) {
+            webViewRef?.goBack()
+        } else {
+            onClose()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        delay(80)
+        try {
+            closeFocusRequester.requestFocus()
+        } catch (_: Exception) {}
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0C0E12))
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Barre d'en-tête supérieure avec marque et bouton Fermer
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp)
+                    .background(Color(0xFF161920))
+                    .padding(horizontal = 32.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(id = R.drawable.talo_os_logo_white),
+                        contentDescription = "Talo OS",
+                        modifier = Modifier
+                            .width(80.dp)
+                            .height(35.dp)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            text = "Wiki & Documentation officielle",
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = url,
+                            color = Color(0x70FFFFFF),
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+
+                // Bouton Fermer (Retour) avec mise au point TV D-Pad
+                val interactionSource = remember { MutableInteractionSource() }
+                val isCloseFocused by interactionSource.collectIsFocusedAsState()
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (isCloseFocused) Color.White else Color(0x28FFFFFF))
+                        .border(
+                            BorderStroke(1.dp, if (isCloseFocused) Color.White else Color(0x18FFFFFF)),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        .focusRequester(closeFocusRequester)
+                        .focusable(interactionSource = interactionSource)
+                        .clickable { onClose() }
+                        .onKeyEvent { keyEvent ->
+                            if (keyEvent.type == KeyEventType.KeyDown) {
+                                when (keyEvent.key) {
+                                    Key.Enter, Key.NumPadEnter, Key.DirectionCenter, Key.Back -> {
+                                        onClose()
+                                        true
+                                    }
+                                    else -> false
+                                }
+                            } else false
+                        }
+                        .padding(horizontal = 18.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Fermer (Retour)",
+                        color = if (isCloseFocused) Color(0xFF0A0A0C) else Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            // Indicateur de chargement discret
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .background(Color(0xFF0071E3))
+                )
+            }
+
+            // WebView native affichant le Wiki GitHub
+            AndroidView(
+                factory = { ctx ->
+                    WebView(ctx).apply {
+                        settings.apply {
+                            javaScriptEnabled = true
+                            domStorageEnabled = true
+                            loadWithOverviewMode = true
+                            useWideViewPort = true
+                            cacheMode = WebSettings.LOAD_DEFAULT
+                            userAgentString =
+                                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                        }
+                        setBackgroundColor(android.graphics.Color.parseColor("#0C0E12"))
+                        isFocusable = true
+                        isFocusableInTouchMode = true
+                        webViewClient = object : WebViewClient() {
+                            override fun onPageFinished(view: WebView?, url: String?) {
+                                super.onPageFinished(view, url)
+                                isLoading = false
+                            }
+                        }
+                        webViewRef = this
+                        loadUrl(url)
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f)
+            )
+        }
     }
 }
