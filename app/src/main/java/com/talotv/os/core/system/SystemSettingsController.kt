@@ -23,6 +23,7 @@ import android.widget.Toast
 import com.talotv.os.core.security.DeviceFingerprint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -404,7 +405,6 @@ class SystemSettingsController(private val context: Context) {
 
     fun openBluetoothRemotePairing() {
         val intents = listOf(
-            Intent("com.amazon.device.settings.REMOTE_ACCESSORY"),
             Intent("com.google.android.intent.action.CONNECT_INPUT"),
             Intent("android.settings.BLUETOOTH_SETTINGS"),
             Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
@@ -416,7 +416,7 @@ class SystemSettingsController(private val context: Context) {
                 return
             } catch (_: Exception) {}
         }
-        Toast.makeText(context, "Recherche Bluetooth lanc\u00E9e", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "Recherche Bluetooth lancée", Toast.LENGTH_SHORT).show()
     }
 
     fun openBluetoothSettings() {
@@ -430,13 +430,14 @@ class SystemSettingsController(private val context: Context) {
     }
 
     // =========================================================================
-    // 7. SYSTÈME (Hardware Info, Sleep, Reboot, Factory Reset)
+    // 7. SYSTÈME (Hardware Info, Sleep, Reboot, Factory Reset, Developer)
     // =========================================================================
 
-    fun getDeviceModel(): String = Build.MODEL ?: "Talo TV Stick"
+    fun getDeviceModel(): String = Build.MODEL ?: "Google TV Streamer (4K)"
     fun getManufacturer(): String = Build.MANUFACTURER ?: "Talo"
     fun getAndroidVersion(): String = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})"
     fun getProcessor(): String = "${Build.HARDWARE} • ${Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64-v8a"}"
+    fun getSecurityPatch(): String = Build.VERSION.SECURITY_PATCH ?: "Récent"
 
     fun getRamInfo(): String {
         return try {
@@ -446,7 +447,19 @@ class SystemSettingsController(private val context: Context) {
             val availGb = memInfo.availMem / (1024.0 * 1024.0 * 1024.0)
             String.format(Locale.US, "%.1f Go libres / %.1f Go total", availGb, totalGb)
         } catch (e: Exception) {
-            "2.0 Go LPDDR4X"
+            "2.1 Go libres / 4.0 Go total"
+        }
+    }
+
+    fun getRamData(): Pair<Float, Float> {
+        return try {
+            val memInfo = ActivityManager.MemoryInfo()
+            activityManager?.getMemoryInfo(memInfo)
+            val totalGb = (memInfo.totalMem / (1024.0 * 1024.0 * 1024.0)).toFloat()
+            val availGb = (memInfo.availMem / (1024.0 * 1024.0 * 1024.0)).toFloat()
+            Pair(availGb, totalGb)
+        } catch (e: Exception) {
+            Pair(2.1f, 4.0f)
         }
     }
 
@@ -459,7 +472,20 @@ class SystemSettingsController(private val context: Context) {
             val freeGb = freeBytes / (1024.0 * 1024.0 * 1024.0)
             String.format(Locale.US, "%.1f Go libres / %.1f Go total", freeGb, totalGb)
         } catch (e: Exception) {
-            "16 Go eMMC 5.1"
+            "22.4 Go libres / 32.0 Go total"
+        }
+    }
+
+    fun getStorageData(): Pair<Float, Float> {
+        return try {
+            val stat = StatFs(Environment.getDataDirectory().path)
+            val totalBytes = stat.totalBytes
+            val freeBytes = stat.availableBytes
+            val totalGb = (totalBytes / (1024.0 * 1024.0 * 1024.0)).toFloat()
+            val freeGb = (freeBytes / (1024.0 * 1024.0 * 1024.0)).toFloat()
+            Pair(freeGb, totalGb)
+        } catch (e: Exception) {
+            Pair(22.4f, 32.0f)
         }
     }
 
@@ -467,7 +493,7 @@ class SystemSettingsController(private val context: Context) {
         return try {
             DeviceFingerprint.getFingerprint(context).take(16).uppercase()
         } catch (e: Exception) {
-            "TALO-HUB-847291"
+            "TALO-STREAMER-4K"
         }
     }
 
@@ -476,6 +502,124 @@ class SystemSettingsController(private val context: Context) {
         val hours = ms / (1000 * 60 * 60)
         val minutes = (ms / (1000 * 60)) % 60
         return "${hours}h ${minutes}m"
+    }
+
+    data class TaloUpdateInfo(
+        val hasUpdate: Boolean,
+        val latestVersion: String,
+        val changelog: String,
+        val downloadUrl: String?
+    )
+
+    suspend fun checkTaloUpdateOnline(currentVersion: String): Result<TaloUpdateInfo> = withContext(Dispatchers.IO) {
+        try {
+            val url = URL("https://api.github.com/repos/sudo-aptttt/talo-tv/releases/latest")
+            val conn = url.openConnection() as HttpURLConnection
+            conn.connectTimeout = 4000
+            conn.readTimeout = 4000
+            conn.setRequestProperty("User-Agent", "Talo-OS")
+            conn.setRequestProperty("Accept", "application/vnd.github.v3+json")
+            conn.requestMethod = "GET"
+
+            val code = conn.responseCode
+            if (code == 200) {
+                val response = conn.inputStream.bufferedReader().use { it.readText() }
+                val json = JSONObject(response)
+                val tagName = json.optString("tag_name", "").removePrefix("v").trim()
+                val body = json.optString("body", "Mise à jour disponible.")
+                val isNewer = compareVersions(tagName, currentVersion) > 0
+                Result.success(
+                    TaloUpdateInfo(
+                        hasUpdate = isNewer,
+                        latestVersion = tagName.ifEmpty { currentVersion },
+                        changelog = body,
+                        downloadUrl = "https://github.com/sudo-aptttt/talo-tv/releases/latest"
+                    )
+                )
+            } else {
+                // Pas de release distante ou statut 404 / 403 : le système est à jour
+                Result.success(
+                    TaloUpdateInfo(
+                        hasUpdate = false,
+                        latestVersion = currentVersion,
+                        changelog = "Votre système Talo OS est à jour.",
+                        downloadUrl = null
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private fun compareVersions(v1: String, v2: String): Int {
+        val parts1 = v1.split(".").mapNotNull { it.toIntOrNull() }
+        val parts2 = v2.split(".").mapNotNull { it.toIntOrNull() }
+        for (i in 0 until maxOf(parts1.size, parts2.size)) {
+            val p1 = parts1.getOrElse(i) { 0 }
+            val p2 = parts2.getOrElse(i) { 0 }
+            if (p1 != p2) return p1.compareTo(p2)
+        }
+        return 0
+    }
+
+    fun openAndroidSystemUpdate() {
+        val intents = listOf(
+            Intent("android.settings.SYSTEM_UPDATE_SETTINGS"),
+            Intent("com.google.android.gms.update.CHECK_FOR_UPDATE"),
+            Intent(Settings.ACTION_DEVICE_INFO_SETTINGS)
+        )
+        for (intent in intents) {
+            try {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+                return
+            } catch (_: Exception) {}
+        }
+        Toast.makeText(context, "Ouverture de la recherche de mise à jour système...", Toast.LENGTH_SHORT).show()
+    }
+
+    fun openDeveloperOptions() {
+        try {
+            val intent = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(context, "Options pour les développeurs non disponibles", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun optimizeRam(): Long {
+        val beforeMem = ActivityManager.MemoryInfo()
+        activityManager?.getMemoryInfo(beforeMem)
+
+        try {
+            val runningApps = activityManager?.runningAppProcesses ?: emptyList()
+            for (proc in runningApps) {
+                if (proc.processName != context.packageName) {
+                    activityManager?.killBackgroundProcesses(proc.processName)
+                }
+            }
+        } catch (_: Exception) {}
+        System.gc()
+
+        val afterMem = ActivityManager.MemoryInfo()
+        activityManager?.getMemoryInfo(afterMem)
+        return (afterMem.availMem - beforeMem.availMem).coerceAtLeast(0L)
+    }
+
+    fun clearSystemCache(): Long {
+        return clearAllAppCache()
+    }
+
+    fun resetTaloSettings(): Boolean {
+        return try {
+            prefs.edit().clear().commit()
+            context.getSharedPreferences("talo_sidebar_prefs", Context.MODE_PRIVATE).edit().clear().commit()
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 
     fun triggerSleep() {
@@ -516,7 +660,8 @@ class SystemSettingsController(private val context: Context) {
     fun triggerFactoryReset() {
         val intents = listOf(
             Intent("android.settings.BACKUP_AND_RESET_SETTINGS"),
-            Intent("android.intent.action.FACTORY_RESET")
+            Intent("android.intent.action.FACTORY_RESET"),
+            Intent(Settings.ACTION_PRIVACY_SETTINGS)
         )
         for (intent in intents) {
             try {
@@ -525,7 +670,7 @@ class SystemSettingsController(private val context: Context) {
                 return
             } catch (_: Exception) {}
         }
-        Toast.makeText(context, "Ouverture de la r\u00E9initialisation syst\u00E8me...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "Ouverture de la réinitialisation système...", Toast.LENGTH_SHORT).show()
     }
 
     fun openWikiWeb() {

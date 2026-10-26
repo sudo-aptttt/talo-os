@@ -98,20 +98,21 @@ fun SettingsScreen(
 
     var selectedIndex by rememberSaveable { mutableIntStateOf(0) }
     var showHelpHub by remember { mutableStateOf(false) }
+    var showSystemScreen by remember { mutableStateOf(false) }
     var isRestoringFocus by remember { mutableStateOf(false) }
 
     val categories = SettingsCategory.values()
     val focusRequesters = remember { List(categories.size) { FocusRequester() } }
     val listState = rememberLazyListState()
 
-    // Interception de la touche Retour vers l'écran d'accueil quand le hub n'est pas ouvert
-    BackHandler(enabled = !showHelpHub) {
+    // Interception de la touche Retour vers l'écran d'accueil quand aucun sous-menu n'est ouvert
+    BackHandler(enabled = !showHelpHub && !showSystemScreen) {
         onNavigateBack()
     }
 
-    // Gestion du focus sur la liste des réglages (à l'ouverture initiale et lors du retour du Help Hub)
-    LaunchedEffect(showHelpHub) {
-        if (!showHelpHub) {
+    // Gestion du focus sur la liste des réglages (à l'ouverture initiale et lors du retour des sous-écrans)
+    LaunchedEffect(showHelpHub, showSystemScreen) {
+        if (!showHelpHub && !showSystemScreen) {
             try {
                 listState.scrollToItem(selectedIndex)
             } catch (_: Exception) {}
@@ -219,7 +220,7 @@ fun SettingsScreen(
                             title = category.title,
                             focusRequester = focusRequesters[index],
                             onFocused = {
-                                if (!showHelpHub && !isRestoringFocus) {
+                                if (!showHelpHub && !showSystemScreen && !isRestoringFocus) {
                                     selectedIndex = index
                                     soundManager.playFocusSound()
                                 }
@@ -231,6 +232,10 @@ fun SettingsScreen(
                                     SettingsCategory.HELP -> {
                                         // Entre dans le Hub d'Aide TV
                                         showHelpHub = true
+                                    }
+                                    SettingsCategory.SYSTEM -> {
+                                        // Entre dans les Paramètres Système TV
+                                        showSystemScreen = true
                                     }
                                     else -> {
                                         // À développer progressivement
@@ -251,6 +256,18 @@ fun SettingsScreen(
                     soundManager.playSelectSound()
                     isRestoringFocus = true
                     showHelpHub = false
+                }
+            )
+        }
+
+        // COUCHE DES PARAMÈTRES SYSTÈME TV (Superposition fluide)
+        if (showSystemScreen) {
+            SystemSettingsScreen(
+                versionName = versionName,
+                onClose = {
+                    soundManager.playSelectSound()
+                    isRestoringFocus = true
+                    showSystemScreen = false
                 }
             )
         }
