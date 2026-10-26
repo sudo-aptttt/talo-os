@@ -97,29 +97,19 @@ fun SettingsScreen(
     val categories = SettingsCategory.values()
     val focusRequesters = remember { List(categories.size) { FocusRequester() } }
 
-    // Affichage du Hub d'Aide 100% natif TV (FAQ, raccourcis et QR code)
-    if (showHelpHub) {
-        HelpHubScreen(
-            versionName = versionName,
-            onClose = {
-                soundManager.playSelectSound()
-                showHelpHub = false
-            }
-        )
-        return
-    }
-
-    // Interception de la touche Retour vers l'écran d'accueil
-    BackHandler {
+    // Interception de la touche Retour vers l'écran d'accueil quand le hub n'est pas ouvert
+    BackHandler(enabled = !showHelpHub) {
         onNavigateBack()
     }
 
-    // Mise au point automatique sur le premier élément à l'ouverture
-    LaunchedEffect(Unit) {
-        delay(60)
-        try {
-            focusRequesters.getOrNull(selectedIndex)?.requestFocus()
-        } catch (_: Exception) {}
+    // Gestion du focus sur la liste des réglages (à l'ouverture initiale et lors du retour du Help Hub)
+    LaunchedEffect(showHelpHub) {
+        if (!showHelpHub) {
+            delay(50)
+            try {
+                focusRequesters.getOrNull(selectedIndex)?.requestFocus()
+            } catch (_: Exception) {}
+        }
     }
 
     Box(
@@ -135,6 +125,7 @@ fun SettingsScreen(
                 )
             )
     ) {
+        // ÉCRAN PRINCIPAL DES RÉGLAGES
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -220,7 +211,7 @@ fun SettingsScreen(
                                 soundManager.playSelectSound()
                                 when (category) {
                                     SettingsCategory.HELP -> {
-                                        // Ouvre le Hub d'Aide interactif et optimisé TV
+                                        // Entre dans le Hub d'Aide TV
                                         showHelpHub = true
                                     }
                                     else -> {
@@ -233,11 +224,23 @@ fun SettingsScreen(
                 }
             }
         }
+
+        // COUCHE DU HUB D'AIDE TV (Superposition fluide)
+        if (showHelpHub) {
+            HelpHubScreen(
+                versionName = versionName,
+                onClose = {
+                    soundManager.playSelectSound()
+                    showHelpHub = false
+                }
+            )
+        }
     }
 }
 
 /**
  * Élément de menu de réglage individuel avec indicateur chevron
+ * - Flèche Droite ou Bouton OK / Centre entre dans la section
  */
 @Composable
 private fun SettingsMenuItem(
@@ -330,8 +333,8 @@ private fun SettingsMenuItem(
 
 /**
  * Hub d'Aide 100% Natif TV :
- * - Section Gauche : QR Code haute résolution à scanner sur smartphone pour le Wiki GitHub complet
- * - Section Droite : Cartes d'aide interactives navigables à la télécommande (Raccourcis, Updates, Privacy, Assistance)
+ * - Navigation TV D-Pad : Flèche Gauche ou Touche Retour ressort immédiatement
+ * - Pas de bouton virtuel à l'écran conformément aux directives Android TV
  */
 @Composable
 private fun HelpHubScreen(
@@ -339,17 +342,18 @@ private fun HelpHubScreen(
     onClose: () -> Unit
 ) {
     val soundManager = remember { TaloApplication.instance.soundEffectManager }
-    val closeFocusRequester = remember { FocusRequester() }
     val cardFocusRequesters = remember { List(4) { FocusRequester() } }
 
+    // Interception de la touche physique Retour de la télécommande
     BackHandler {
         onClose()
     }
 
+    // Mise au point immédiate sur la première carte au D-Pad
     LaunchedEffect(Unit) {
-        delay(80)
+        delay(60)
         try {
-            closeFocusRequester.requestFocus()
+            cardFocusRequesters.getOrNull(0)?.requestFocus()
         } catch (_: Exception) {}
     }
 
@@ -371,7 +375,7 @@ private fun HelpHubScreen(
                 .fillMaxSize()
                 .padding(horizontal = 48.dp, vertical = 20.dp)
         ) {
-            // EN-TÊTE : Titre du Hub & Bouton Fermer
+            // EN-TÊTE : Titre du Hub & Indication de navigation TV épurée (pas de faux bouton)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -403,40 +407,20 @@ private fun HelpHubScreen(
                     }
                 }
 
-                // Bouton Fermer (Retour)
-                val interactionSource = remember { MutableInteractionSource() }
-                val isCloseFocused by interactionSource.collectIsFocusedAsState()
-
-                Box(
+                // Indication discrète du contrôle TV (conforme aux guidelines Android TV)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (isCloseFocused) Color.White else Color(0x28FFFFFF))
-                        .border(
-                            BorderStroke(1.dp, if (isCloseFocused) Color.White else Color(0x18FFFFFF)),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .focusRequester(closeFocusRequester)
-                        .focusable(interactionSource = interactionSource)
-                        .clickable { onClose() }
-                        .onKeyEvent { keyEvent ->
-                            if (keyEvent.type == KeyEventType.KeyDown) {
-                                when (keyEvent.key) {
-                                    Key.Enter, Key.NumPadEnter, Key.DirectionCenter, Key.Back -> {
-                                        onClose()
-                                        true
-                                    }
-                                    else -> false
-                                }
-                            } else false
-                        }
-                        .padding(horizontal = 20.dp, vertical = 10.dp),
-                    contentAlignment = Alignment.Center
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0x18FFFFFF))
+                        .border(BorderStroke(1.dp, Color(0x10FFFFFF)), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
                 ) {
                     Text(
-                        text = "Fermer (Retour)",
-                        color = if (isCloseFocused) Color(0xFF0A0A0C) else Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold
+                        text = "← Flèche Gauche ou Retour pour quitter",
+                        color = Color(0x99FFFFFF),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
@@ -519,6 +503,7 @@ private fun HelpHubScreen(
                 }
 
                 // COLONNE DROITE : 4 Cartes d'aide natives navigables au D-Pad
+                // Flèche Gauche ou Touche Retour ressort du Hub
                 LazyColumn(
                     modifier = Modifier
                         .weight(1.3f)
@@ -530,7 +515,8 @@ private fun HelpHubScreen(
                             title = "Raccourcis Télécommande",
                             description = "• Accueil (Home) : Revenir directement à Talo OS.\n• Retour (Back) : Quitter l'application en cours.\n• D-Pad (Flèches) : Défilement fluide de l'interface.",
                             focusRequester = cardFocusRequesters[0],
-                            onFocused = { soundManager.playFocusSound() }
+                            onFocused = { soundManager.playFocusSound() },
+                            onExit = onClose
                         )
                     }
 
@@ -539,7 +525,8 @@ private fun HelpHubScreen(
                             title = "Mises à jour du système",
                             description = "Talo OS vérifie automatiquement les mises à jour au démarrage. Vous pouvez également réinstaller ou mettre à jour via l'application Downloader avec le code permanent 6790525.",
                             focusRequester = cardFocusRequesters[1],
-                            onFocused = { soundManager.playFocusSound() }
+                            onFocused = { soundManager.playFocusSound() },
+                            onExit = onClose
                         )
                     }
 
@@ -548,7 +535,8 @@ private fun HelpHubScreen(
                             title = "Confidentialité & Zéro Publicité",
                             description = "Le bouclier Talo Privacy Shield est actif en temps réel. Il neutralise les traqueurs et SDK publicitaires en arrière-plan sans impacter la qualité de streaming ni le DRM Widevine L1.",
                             focusRequester = cardFocusRequesters[2],
-                            onFocused = { soundManager.playFocusSound() }
+                            onFocused = { soundManager.playFocusSound() },
+                            onExit = onClose
                         )
                     }
 
@@ -557,7 +545,8 @@ private fun HelpHubScreen(
                             title = "Assistance & Signalement de bogue",
                             description = "En cas de dysfonctionnement, redémarrez la box depuis Réglages > Système. Pour suggérer des fonctionnalités ou rapporter un souci, rendez-vous sur le dépôt GitHub du projet.",
                             focusRequester = cardFocusRequesters[3],
-                            onFocused = { soundManager.playFocusSound() }
+                            onFocused = { soundManager.playFocusSound() },
+                            onExit = onClose
                         )
                     }
                 }
@@ -568,13 +557,15 @@ private fun HelpHubScreen(
 
 /**
  * Carte d'information native optimisée pour l'écran TV avec navigation D-Pad
+ * - Flèche Gauche ou Touche Retour ressort immédiatement du Hub
  */
 @Composable
 private fun HelpCardItem(
     title: String,
     description: String,
     focusRequester: FocusRequester,
-    onFocused: () -> Unit
+    onFocused: () -> Unit,
+    onExit: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
@@ -610,6 +601,17 @@ private fun HelpCardItem(
             .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(18.dp))
             .focusRequester(focusRequester)
             .focusable(interactionSource = interactionSource)
+            .onKeyEvent { keyEvent ->
+                if (keyEvent.type == KeyEventType.KeyDown) {
+                    when (keyEvent.key) {
+                        Key.DirectionLeft, Key.Back -> {
+                            onExit()
+                            true
+                        }
+                        else -> false
+                    }
+                } else false
+            }
             .padding(horizontal = 22.dp, vertical = 16.dp)
     ) {
         Text(
