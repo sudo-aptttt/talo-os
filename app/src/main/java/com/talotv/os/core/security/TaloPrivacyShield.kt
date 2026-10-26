@@ -16,8 +16,8 @@ import java.net.InetAddress
 /**
  * Talo Privacy Shield ("Gilet Pare-Balle")
  * Active anti-telemetry and anti-tracking defense system for Talo OS.
- * Neutralizes aggressive Big Tech surveillance (Google TV Analytics, Amazon Fire Metrics,
- * OEM data harvesting, ad broker SDKs) without breaking core TV playback or DRM (Widevine L1).
+ * Neutralizes aggressive Big Tech surveillance and data harvesting SDKs
+ * without breaking core TV playback or DRM (Widevine L1).
  */
 object TaloPrivacyShield {
 
@@ -36,15 +36,6 @@ object TaloPrivacyShield {
         "doubleclick.net",
         "admob.com",
         "android.clients.google.com/checkin",
-
-        // Amazon Fire TV Telemetry & Metrics
-        "telemetry.amazon.com",
-        "device-metrics.amazon.com",
-        "device-metrics-us.amazon.com",
-        "device-metrics-us-2.amazon.com",
-        "fls-na.amazon.com",
-        "whisperjoin.amazon.com",
-        "aan.amazon.com",
 
         // Third-Party Ad Brokers & Mobile Trackers
         "scorecardresearch.com",
@@ -68,11 +59,7 @@ object TaloPrivacyShield {
         Pair("com.google.android.gms", "com.google.android.gms.measurement.AppMeasurementReceiver"),
 
         // Android TV Leanback Stock Recommendations & Promos
-        Pair("com.google.android.tvrecommendations", "com.google.android.tvrecommendations.service.ChannelService"),
-
-        // Amazon FireOS Tracking
-        Pair("com.amazon.device.metrics", "com.amazon.device.metrics.MetricsService"),
-        Pair("com.amazon.whisperplay.contracts", "com.amazon.whisperplay.service.WhisperPlayService")
+        Pair("com.google.android.tvrecommendations", "com.google.android.tvrecommendations.service.ChannelService")
     )
 
     private val _isShieldActive = MutableStateFlow(false)
