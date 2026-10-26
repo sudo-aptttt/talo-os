@@ -22,10 +22,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,12 +41,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -55,38 +53,20 @@ import com.talotv.os.R
 import com.talotv.os.TaloApplication
 import kotlinx.coroutines.delay
 
-// =============================================================================
-// TALO SETTINGS PALETTE
-// =============================================================================
-private val TaloDarkBackground = Color(0xFF0A0A0C)
-private val TaloCardBackground = Color(0x22FFFFFF)
-private val TaloCardBorder = Color(0x1AFFFFFF)
-private val TaloTextPrimary = Color(0xFFFFFFFF)
-private val TaloTextSecondary = Color(0xFF8E8E93)
-private val TaloAccentBlue = Color(0xFF0071E3)
-
 /**
- * 9 Onglets Principaux des Réglages
+ * 9 Onglets Principaux des Réglages Talo OS
  */
 enum class SettingsCategory(val title: String) {
     GENERAL("Général"),
     USERS("Utilisateurs et comptes"),
     NETWORK("Réseau"),
-    VIDEO_AUDIO("Vidéo et Audio"),
+    VIDEO_AUDIO("Vidéo et audio"),
     APPS("Applications"),
     NOTIFICATIONS("Notifications"),
     REMOTES("Télécommandes et appareils"),
     SYSTEM("Système"),
     HELP("Aide")
 }
-
-data class SettingItem(
-    val title: String,
-    val value: String? = null,
-    val isAction: Boolean = false,
-    val actionText: String? = null,
-    val onClick: () -> Unit = {}
-)
 
 @Composable
 fun SettingsScreen(
@@ -105,183 +85,138 @@ fun SettingsScreen(
         }
     }
 
-    // Navigation State: 0 = Categories List (Left), 1 = Detail Items (Right)
-    var focusColumn by remember { mutableIntStateOf(0) }
-    var selectedCategoryIndex by remember { mutableIntStateOf(0) }
-    var selectedItemIndex by remember { mutableIntStateOf(0) }
-
+    var selectedIndex by remember { mutableIntStateOf(0) }
     val categories = SettingsCategory.values()
-    val activeCategory = categories[selectedCategoryIndex]
+    val focusRequesters = remember { List(categories.size) { FocusRequester() } }
 
-    val categoryFocusRequesters = remember { List(categories.size) { FocusRequester() } }
-    val itemFocusRequesters = remember { List(15) { FocusRequester() } }
-
-    // Catégories entièrement épurées, prêtes à être complétées progressivement
-    val categoryItems: List<SettingItem> = remember(activeCategory) {
-        when (activeCategory) {
-            SettingsCategory.GENERAL -> emptyList()
-            SettingsCategory.USERS -> emptyList()
-            SettingsCategory.NETWORK -> emptyList()
-            SettingsCategory.VIDEO_AUDIO -> emptyList()
-            SettingsCategory.APPS -> emptyList()
-            SettingsCategory.NOTIFICATIONS -> emptyList()
-            SettingsCategory.REMOTES -> emptyList()
-            SettingsCategory.SYSTEM -> emptyList()
-            SettingsCategory.HELP -> emptyList()
-        }
-    }
-
-    // Back handling
+    // Interception de la touche Retour vers l'écran d'accueil
     BackHandler {
-        if (focusColumn == 1 && categoryItems.isNotEmpty()) {
-            soundManager.playSelectSound()
-            focusColumn = 0
-        } else {
-            onNavigateBack()
-        }
+        onNavigateBack()
     }
 
-    // Dynamic focus manager
-    LaunchedEffect(focusColumn, selectedCategoryIndex) {
-        delay(40)
+    // Mise au point automatique sur le premier élément à l'ouverture
+    LaunchedEffect(Unit) {
+        delay(60)
         try {
-            if (focusColumn == 0) {
-                categoryFocusRequesters.getOrNull(selectedCategoryIndex)?.requestFocus()
-            } else if (categoryItems.isNotEmpty()) {
-                itemFocusRequesters.getOrNull(selectedItemIndex.coerceIn(0, categoryItems.lastIndex))?.requestFocus()
-            }
+            focusRequesters.getOrNull(0)?.requestFocus()
         } catch (_: Exception) {}
     }
 
-    // =========================================================================
-    // UI LAYOUT : 2 COLUMNS (Clean & Uncluttered)
-    // =========================================================================
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(TaloDarkBackground)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF14171D),
+                        Color(0xFF0C0E12),
+                        Color(0xFF07080A)
+                    )
+                )
+            )
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 48.dp, end = 48.dp, top = 36.dp, bottom = 36.dp)
+                .padding(horizontal = 64.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // LEFT COLUMN : Brand Header + Primary Category Tabs
-            Column(
+            // Titre supérieur centré
+            Text(
+                text = "Réglages",
+                color = Color(0xCCFFFFFF),
+                fontSize = 24.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = 20.dp)
+            )
+
+            // Section principale : Gauche (Badge Logo + Version) | Droite (Liste avec chevrons)
+            Row(
                 modifier = Modifier
-                    .width(360.dp)
-                    .fillMaxHeight()
+                    .fillMaxWidth()
+                    .weight(1f),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Brand Lockup Header
+                // COLONNE GAUCHE : Boîte Logo Squircle avec version en-dessous
                 Column(
-                    modifier = Modifier.padding(bottom = 24.dp, start = 8.dp)
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 56.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.talo_os_logo_white),
-                        contentDescription = "Talo OS",
+                    // Carte Squircle avec le logo Talo OS
+                    Box(
                         modifier = Modifier
-                            .width(160.dp)
-                            .height(68.dp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+                            .size(260.dp)
+                            .clip(RoundedCornerShape(36.dp))
+                            .background(Color(0xFF1E2127))
+                            .border(
+                                BorderStroke(1.dp, Color(0x18FFFFFF)),
+                                RoundedCornerShape(36.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.talo_os_logo_white),
+                            contentDescription = "Talo OS",
+                            modifier = Modifier
+                                .width(160.dp)
+                                .height(70.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    // Version du système en-dessous
                     Text(
-                        text = "Réglages • v$versionName",
-                        color = TaloTextSecondary,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
+                        text = "v$versionName",
+                        color = Color(0x80FFFFFF),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 0.5.sp
                     )
                 }
 
-                // Categories List (Primary Tabs)
+                // COLONNE DROITE : Liste verticale des 9 catégories avec flèches
                 LazyColumn(
+                    modifier = Modifier
+                        .weight(1.2f)
+                        .fillMaxHeight(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxSize()
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     itemsIndexed(categories) { index, category ->
-                        CategoryTabItem(
+                        SettingsMenuItem(
                             title = category.title,
-                            isSelected = (selectedCategoryIndex == index),
-                            isFocused = (focusColumn == 0 && selectedCategoryIndex == index),
-                            focusRequester = categoryFocusRequesters[index],
+                            isFocused = (selectedIndex == index),
+                            focusRequester = focusRequesters[index],
                             onFocused = {
-                                selectedCategoryIndex = index
-                                selectedItemIndex = 0
+                                selectedIndex = index
+                                soundManager.playFocusSound()
                             },
                             onClick = {
                                 soundManager.playSelectSound()
-                                if (categoryItems.isNotEmpty()) {
-                                    focusColumn = 1
-                                }
-                            },
-                            onRight = {
-                                if (categoryItems.isNotEmpty()) {
-                                    soundManager.playSelectSound()
-                                    focusColumn = 1
-                                }
                             }
                         )
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.width(48.dp))
-
-            // RIGHT COLUMN : Detail Cards for Selected Category
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-            ) {
-                // Section Title
-                Text(
-                    text = activeCategory.title,
-                    color = TaloTextPrimary,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 20.dp, top = 12.dp)
-                )
-
-                // Detail Cards List
-                if (categoryItems.isNotEmpty()) {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        itemsIndexed(categoryItems) { itemIndex, item ->
-                            SettingCardItem(
-                                item = item,
-                                isFocused = (focusColumn == 1 && selectedItemIndex == itemIndex),
-                                focusRequester = itemFocusRequesters.getOrNull(itemIndex),
-                                onFocused = { selectedItemIndex = itemIndex },
-                                onClick = {
-                                    soundManager.playSelectSound()
-                                    item.onClick()
-                                },
-                                onLeft = {
-                                    soundManager.playSelectSound()
-                                    focusColumn = 0
-                                }
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 }
 
-// =============================================================================
-// CATEGORY TAB COMPOSABLE (Left Column)
-// =============================================================================
+/**
+ * Élément de menu de réglage individuel avec indicateur chevron
+ */
 @Composable
-private fun CategoryTabItem(
+private fun SettingsMenuItem(
     title: String,
-    isSelected: Boolean,
     isFocused: Boolean,
     focusRequester: FocusRequester,
     onFocused: () -> Unit,
-    onClick: () -> Unit,
-    onRight: () -> Unit
+    onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val actualFocus by interactionSource.collectIsFocusedAsState()
@@ -292,114 +227,26 @@ private fun CategoryTabItem(
 
     val scale by animateFloatAsState(
         targetValue = if (actualFocus) 1.02f else 1.0f,
-        label = "tabScale"
+        animationSpec = tween(120),
+        label = "menuScale"
     )
 
     val backgroundColor by animateColorAsState(
-        targetValue = when {
-            actualFocus -> Color.White
-            isSelected -> Color(0x28FFFFFF)
-            else -> Color(0x0EFFFFFF)
-        },
-        animationSpec = tween(150),
-        label = "tabBg"
+        targetValue = if (actualFocus) Color.White else Color(0x24FFFFFF),
+        animationSpec = tween(120),
+        label = "menuBg"
     )
 
-    val textColor by animateColorAsState(
-        targetValue = when {
-            actualFocus -> Color(0xFF0A0A0C)
-            isSelected -> Color.White
-            else -> TaloTextSecondary
-        },
-        animationSpec = tween(150),
-        label = "tabText"
+    val contentColor by animateColorAsState(
+        targetValue = if (actualFocus) Color(0xFF0B0C0E) else Color(0xFFF2F2F7),
+        animationSpec = tween(120),
+        label = "menuContent"
     )
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .scale(scale)
-            .clip(RoundedCornerShape(14.dp))
-            .background(backgroundColor)
-            .border(
-                BorderStroke(
-                    width = 1.dp,
-                    color = if (actualFocus) Color.White else Color(0x14FFFFFF)
-                ),
-                shape = RoundedCornerShape(14.dp)
-            )
-            .focusRequester(focusRequester)
-            .focusable(interactionSource = interactionSource)
-            .clickable { onClick() }
-            .onKeyEvent { keyEvent ->
-                if (keyEvent.type == KeyEventType.KeyDown) {
-                    when (keyEvent.key) {
-                        Key.DirectionRight, Key.Enter, Key.NumPadEnter, Key.DirectionCenter -> {
-                            onRight()
-                            true
-                        }
-                        else -> false
-                    }
-                } else false
-            }
-            .padding(horizontal = 20.dp, vertical = 14.dp)
-    ) {
-        Text(
-            text = title,
-            color = textColor,
-            fontSize = 15.sp,
-            fontWeight = if (isSelected || actualFocus) FontWeight.SemiBold else FontWeight.Normal,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
-
-// =============================================================================
-// SETTING CARD COMPOSABLE (Right Column)
-// =============================================================================
-@Composable
-private fun SettingCardItem(
-    item: SettingItem,
-    isFocused: Boolean,
-    focusRequester: FocusRequester?,
-    onFocused: () -> Unit,
-    onClick: () -> Unit,
-    onLeft: () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val actualFocus by interactionSource.collectIsFocusedAsState()
-
-    LaunchedEffect(actualFocus) {
-        if (actualFocus) onFocused()
-    }
-
-    val scale by animateFloatAsState(
-        targetValue = if (actualFocus) 1.02f else 1.0f,
-        label = "itemScale"
-    )
-
-    val bg by animateColorAsState(
-        targetValue = if (actualFocus) Color.White else TaloCardBackground,
-        animationSpec = tween(150),
-        label = "itemBg"
-    )
-
-    val titleColor by animateColorAsState(
-        targetValue = if (actualFocus) Color(0xFF0A0A0C) else TaloTextPrimary,
-        animationSpec = tween(150),
-        label = "itemTitleColor"
-    )
-
-    val valColor by animateColorAsState(
-        targetValue = when {
-            actualFocus -> Color(0xFF2C2C2E)
-            item.isAction -> TaloAccentBlue
-            else -> TaloTextSecondary
-        },
-        animationSpec = tween(150),
-        label = "itemValColor"
+    val chevronColor by animateColorAsState(
+        targetValue = if (actualFocus) Color(0xFF0B0C0E) else Color(0x60FFFFFF),
+        animationSpec = tween(120),
+        label = "chevronColor"
     )
 
     Row(
@@ -407,53 +254,36 @@ private fun SettingCardItem(
         horizontalArrangement = Arrangement.SpaceBetween,
         modifier = Modifier
             .fillMaxWidth()
+            .height(50.dp)
             .scale(scale)
-            .clip(RoundedCornerShape(16.dp))
-            .background(bg)
+            .clip(RoundedCornerShape(13.dp))
+            .background(backgroundColor)
             .border(
                 BorderStroke(
                     width = 1.dp,
-                    color = if (actualFocus) Color.White else TaloCardBorder
+                    color = if (actualFocus) Color.White else Color(0x10FFFFFF)
                 ),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(13.dp)
             )
-            .then(
-                if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier
-            )
+            .focusRequester(focusRequester)
             .focusable(interactionSource = interactionSource)
             .clickable { onClick() }
-            .onKeyEvent { keyEvent ->
-                if (keyEvent.type == KeyEventType.KeyDown) {
-                    when (keyEvent.key) {
-                        Key.DirectionLeft, Key.Back -> {
-                            onLeft()
-                            true
-                        }
-                        Key.Enter, Key.NumPadEnter, Key.DirectionCenter -> {
-                            onClick()
-                            true
-                        }
-                        else -> false
-                    }
-                } else false
-            }
-            .padding(horizontal = 24.dp, vertical = 18.dp)
+            .padding(horizontal = 20.dp)
     ) {
         Text(
-            text = item.title,
-            color = titleColor,
+            text = title,
+            color = contentColor,
             fontSize = 16.sp,
-            fontWeight = FontWeight.Medium
+            fontWeight = if (actualFocus) FontWeight.SemiBold else FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
 
-        val displayText = item.actionText ?: item.value
-        if (displayText != null) {
-            Text(
-                text = displayText,
-                color = valColor,
-                fontSize = 15.sp,
-                fontWeight = if (item.isAction) FontWeight.SemiBold else FontWeight.Normal
-            )
-        }
+        Icon(
+            painter = painterResource(id = R.drawable.ic_chevron_right),
+            contentDescription = null,
+            tint = chevronColor,
+            modifier = Modifier.size(18.dp)
+        )
     }
 }
