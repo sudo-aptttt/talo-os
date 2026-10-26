@@ -52,6 +52,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -373,56 +374,28 @@ private fun HelpHubScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 48.dp, vertical = 20.dp)
+                .padding(start = 56.dp, end = 56.dp, top = 36.dp, bottom = 24.dp)
         ) {
-            // EN-TÊTE : Titre du Hub & Indication de navigation TV épurée (pas de faux bouton)
-            Row(
+            // EN-TÊTE CONFORME GOOGLE TV : Fil d'Ariane & Titre de page
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 18.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(bottom = 22.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        painter = painterResource(id = R.drawable.talo_os_logo_white),
-                        contentDescription = "Talo OS",
-                        modifier = Modifier
-                            .width(88.dp)
-                            .height(38.dp)
-                    )
-                    Spacer(modifier = Modifier.width(18.dp))
-                    Column {
-                        Text(
-                            text = "Centre d'Aide & Documentation",
-                            color = Color.White,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Talo OS v$versionName • Conçu pour Google TV Streamer 4K",
-                            color = Color(0x80FFFFFF),
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-
-                // Indication discrète du contrôle TV (conforme aux guidelines Android TV)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0x18FFFFFF))
-                        .border(BorderStroke(1.dp, Color(0x10FFFFFF)), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 14.dp, vertical = 6.dp)
-                ) {
-                    Text(
-                        text = "← Flèche Gauche ou Retour pour quitter",
-                        color = Color(0x99FFFFFF),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+                Text(
+                    text = "Réglages  ›  Aide",
+                    color = Color(0x99FFFFFF),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.5.sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Centre d'Aide & Documentation",
+                    color = Color.White,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
             // CORPS : 2 Colonnes équilibrées
@@ -444,17 +417,17 @@ private fun HelpHubScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(28.dp))
+                            .clip(RoundedCornerShape(24.dp))
                             .background(Color(0xFF1B1E24))
-                            .border(BorderStroke(1.dp, Color(0x18FFFFFF)), RoundedCornerShape(28.dp))
-                            .padding(24.dp),
+                            .border(BorderStroke(1.dp, Color(0x18FFFFFF)), RoundedCornerShape(24.dp))
+                            .padding(20.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 text = "Wiki GitHub Officiel",
                                 color = Color.White,
-                                fontSize = 17.sp,
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(4.dp))
@@ -462,17 +435,18 @@ private fun HelpHubScreen(
                                 text = "Scannez avec votre smartphone pour lire la documentation complète.",
                                 color = Color(0x80FFFFFF),
                                 fontSize = 12.sp,
-                                lineHeight = 16.sp
+                                lineHeight = 16.sp,
+                                textAlign = TextAlign.Center
                             )
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(14.dp))
 
                             // Boîte blanche contrastée pour le QR Code
                             Box(
                                 modifier = Modifier
-                                    .size(190.dp)
-                                    .clip(RoundedCornerShape(16.dp))
+                                    .size(170.dp)
+                                    .clip(RoundedCornerShape(14.dp))
                                     .background(Color.White)
-                                    .padding(10.dp),
+                                    .padding(8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Image(
@@ -482,7 +456,7 @@ private fun HelpHubScreen(
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(14.dp))
 
                             // Badges pratiques
                             Text(
@@ -491,7 +465,7 @@ private fun HelpHubScreen(
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
-                            Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "Code Downloader : 6790525",
                                 color = Color(0xFF8E8E93),
@@ -508,7 +482,7 @@ private fun HelpHubScreen(
                     modifier = Modifier
                         .weight(1.3f)
                         .fillMaxHeight(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     item {
                         HelpCardItem(
@@ -596,9 +570,9 @@ private fun HelpCardItem(
         modifier = Modifier
             .fillMaxWidth()
             .scale(scale)
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(bgColor)
-            .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(18.dp))
+            .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(16.dp))
             .focusRequester(focusRequester)
             .focusable(interactionSource = interactionSource)
             .onKeyEvent { keyEvent ->
@@ -612,20 +586,20 @@ private fun HelpCardItem(
                     }
                 } else false
             }
-            .padding(horizontal = 22.dp, vertical = 16.dp)
+            .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         Text(
             text = title,
             color = if (isFocused) Color.White else Color(0xFFF2F2F7),
-            fontSize = 16.sp,
+            fontSize = 15.sp,
             fontWeight = FontWeight.Bold
         )
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = description,
             color = if (isFocused) Color(0xFFD1D1D6) else Color(0x99FFFFFF),
-            fontSize = 13.sp,
-            lineHeight = 18.sp
+            fontSize = 12.5.sp,
+            lineHeight = 17.sp
         )
     }
 }
