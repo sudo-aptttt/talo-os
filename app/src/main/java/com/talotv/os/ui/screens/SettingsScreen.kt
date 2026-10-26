@@ -48,6 +48,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -253,31 +254,32 @@ private fun SettingsMenuItem(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val actualFocus by interactionSource.collectIsFocusedAsState()
+    val hasFocus = actualFocus || isFocused
 
     LaunchedEffect(actualFocus) {
         if (actualFocus) onFocused()
     }
 
     val scale by animateFloatAsState(
-        targetValue = if (actualFocus) 1.02f else 1.0f,
+        targetValue = if (hasFocus) 1.02f else 1.0f,
         animationSpec = tween(120),
         label = "menuScale"
     )
 
     val backgroundColor by animateColorAsState(
-        targetValue = if (actualFocus) Color.White else Color(0x24FFFFFF),
+        targetValue = if (hasFocus) Color.White else Color(0x24FFFFFF),
         animationSpec = tween(120),
         label = "menuBg"
     )
 
     val contentColor by animateColorAsState(
-        targetValue = if (actualFocus) Color(0xFF0B0C0E) else Color(0xFFF2F2F7),
+        targetValue = if (hasFocus) Color(0xFF0B0C0E) else Color(0xFFF2F2F7),
         animationSpec = tween(120),
         label = "menuContent"
     )
 
     val chevronColor by animateColorAsState(
-        targetValue = if (actualFocus) Color(0xFF0B0C0E) else Color(0x60FFFFFF),
+        targetValue = if (hasFocus) Color(0xFF0B0C0E) else Color(0x60FFFFFF),
         animationSpec = tween(120),
         label = "chevronColor"
     )
@@ -294,14 +296,12 @@ private fun SettingsMenuItem(
             .border(
                 BorderStroke(
                     width = 1.dp,
-                    color = if (actualFocus) Color.White else Color(0x10FFFFFF)
+                    color = if (hasFocus) Color.White else Color(0x10FFFFFF)
                 ),
                 shape = RoundedCornerShape(13.dp)
             )
             .focusRequester(focusRequester)
-            .focusable(interactionSource = interactionSource)
-            .clickable { onClick() }
-            .onKeyEvent { keyEvent ->
+            .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
                     when (keyEvent.key) {
                         Key.DirectionRight, Key.Enter, Key.NumPadEnter, Key.DirectionCenter -> {
@@ -312,13 +312,19 @@ private fun SettingsMenuItem(
                     }
                 } else false
             }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {
+                onClick()
+            }
             .padding(horizontal = 20.dp)
     ) {
         Text(
             text = title,
             color = contentColor,
             fontSize = 16.sp,
-            fontWeight = if (actualFocus) FontWeight.SemiBold else FontWeight.Medium,
+            fontWeight = if (hasFocus) FontWeight.SemiBold else FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -561,8 +567,7 @@ private fun HelpCardItem(
             .background(bgColor)
             .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(16.dp))
             .focusRequester(focusRequester)
-            .focusable(interactionSource = interactionSource)
-            .onKeyEvent { keyEvent ->
+            .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
                     when (keyEvent.key) {
                         Key.DirectionLeft, Key.Back -> {
@@ -573,6 +578,7 @@ private fun HelpCardItem(
                     }
                 } else false
             }
+            .focusable(interactionSource = interactionSource)
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         Text(
