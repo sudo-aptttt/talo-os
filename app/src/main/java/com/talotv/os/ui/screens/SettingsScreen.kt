@@ -9,7 +9,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -50,7 +49,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
@@ -65,18 +63,23 @@ import com.talotv.os.TaloApplication
 import kotlinx.coroutines.delay
 
 /**
- * 9 Onglets Principaux des Réglages Talo OS
+ * 10 Catégories Principales des Réglages Talo OS
+ * Architecture inspirée des meilleurs systèmes TV Leanback :
+ * - Navigation fluide au D-Pad (Flèche Droite pour entrer, Flèche Gauche ou Retour pour sortir)
+ * - Zéro bouton retour virtuel affiché à l'écran
+ * - Design Frosted Glass sobre et élégant
  */
 enum class SettingsCategory(val title: String) {
-    GENERAL("Général"),
-    USERS("Utilisateurs et comptes"),
-    NETWORK("Réseau"),
-    VIDEO_AUDIO("Vidéo et audio"),
-    APPS("Applications"),
-    NOTIFICATIONS("Notifications"),
+    NETWORK("Réseau et Internet"),
+    VIDEO_AUDIO("Affichage et son"),
+    USERS("Comptes et profils"),
+    APPS("Applications et stockage"),
     REMOTES("Télécommandes et appareils"),
+    PRIVACY("Confidentialité et sécurité"),
+    NOTIFICATIONS("Notifications"),
+    GENERAL("Général et préférences"),
     SYSTEM("Système"),
-    HELP("Aide")
+    HELP("Aide et support")
 }
 
 @Composable
@@ -100,22 +103,21 @@ fun SettingsScreen(
     var activeCategory by rememberSaveable { mutableStateOf<SettingsCategory?>(null) }
     var isRestoringFocus by remember { mutableStateOf(false) }
 
-    val categories = SettingsCategory.values()
+    val categories = remember { SettingsCategory.values() }
     val focusRequesters = remember { List(categories.size) { FocusRequester() } }
     val listState = rememberLazyListState()
 
-    // Interception de la touche Retour vers l'écran d'accueil quand aucun sous-menu n'est ouvert
+    // Touche Retour physique : retourne à l'accueil si aucun sous-menu n'est ouvert
     BackHandler(enabled = activeCategory == null) {
         onNavigateBack()
     }
 
-    // Gestion du focus sur la liste des réglages (à l'ouverture initiale et lors du retour des sous-écrans)
+    // Gestion du focus sur la liste principale
     LaunchedEffect(activeCategory) {
         if (activeCategory == null) {
             try {
                 listState.scrollToItem(selectedIndex)
             } catch (_: Exception) {}
-            // Répéter l'acquisition du focus sur quelques trames pour devancer le focus fallback automatique
             repeat(4) {
                 delay(20)
                 try {
@@ -133,7 +135,7 @@ fun SettingsScreen(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF14171D),
+                        Color(0xFF14171E),
                         Color(0xFF0C0E12),
                         Color(0xFF07080A)
                     )
@@ -172,7 +174,6 @@ fun SettingsScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // Carte Squircle avec le logo Talo OS
                     Box(
                         modifier = Modifier
                             .size(260.dp)
@@ -195,7 +196,6 @@ fun SettingsScreen(
 
                     Spacer(modifier = Modifier.height(18.dp))
 
-                    // Version du système en-dessous
                     Text(
                         text = "v$versionName",
                         color = Color(0x80FFFFFF),
@@ -205,7 +205,7 @@ fun SettingsScreen(
                     )
                 }
 
-                // COLONNE DROITE : Liste verticale des 9 catégories avec flèches
+                // COLONNE DROITE : Liste verticale des 10 catégories avec flèches
                 LazyColumn(
                     state = listState,
                     modifier = Modifier
@@ -228,33 +228,16 @@ fun SettingsScreen(
                                 selectedIndex = index
                                 soundManager.playSelectSound()
                                 activeCategory = category
-                            }
+                            },
+                            onBack = onNavigateBack
                         )
                     }
                 }
             }
         }
 
-        // SOUS-ÉCRANS THÉMATIQUES TALO OS (Superposition fluide)
+        // SOUS-ÉCRANS THÉMATIQUES TALO OS (Superposition plein écran fluide)
         when (activeCategory) {
-            SettingsCategory.GENERAL -> {
-                GeneralSettingsScreen(
-                    onClose = {
-                        soundManager.playSelectSound()
-                        isRestoringFocus = true
-                        activeCategory = null
-                    }
-                )
-            }
-            SettingsCategory.USERS -> {
-                UsersSettingsScreen(
-                    onClose = {
-                        soundManager.playSelectSound()
-                        isRestoringFocus = true
-                        activeCategory = null
-                    }
-                )
-            }
             SettingsCategory.NETWORK -> {
                 NetworkSettingsScreen(
                     onClose = {
@@ -273,8 +256,35 @@ fun SettingsScreen(
                     }
                 )
             }
+            SettingsCategory.USERS -> {
+                UsersSettingsScreen(
+                    onClose = {
+                        soundManager.playSelectSound()
+                        isRestoringFocus = true
+                        activeCategory = null
+                    }
+                )
+            }
             SettingsCategory.APPS -> {
                 AppsSettingsScreen(
+                    onClose = {
+                        soundManager.playSelectSound()
+                        isRestoringFocus = true
+                        activeCategory = null
+                    }
+                )
+            }
+            SettingsCategory.REMOTES -> {
+                RemotesSettingsScreen(
+                    onClose = {
+                        soundManager.playSelectSound()
+                        isRestoringFocus = true
+                        activeCategory = null
+                    }
+                )
+            }
+            SettingsCategory.PRIVACY -> {
+                PrivacySettingsScreen(
                     onClose = {
                         soundManager.playSelectSound()
                         isRestoringFocus = true
@@ -291,8 +301,8 @@ fun SettingsScreen(
                     }
                 )
             }
-            SettingsCategory.REMOTES -> {
-                RemotesSettingsScreen(
+            SettingsCategory.GENERAL -> {
+                GeneralSettingsScreen(
                     onClose = {
                         soundManager.playSelectSound()
                         isRestoringFocus = true
@@ -328,16 +338,18 @@ fun SettingsScreen(
 /**
  * Élément de menu de réglage individuel avec indicateur chevron
  * - Flèche Droite ou Bouton OK / Centre entre dans la section
+ * - Flèche Gauche ou Bouton Retour retourne à l'écran d'accueil
  */
 @Composable
 private fun SettingsMenuItem(
     title: String,
     focusRequester: FocusRequester,
     onFocused: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onBack: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
+    var isFocused by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.02f else 1.0f,
@@ -379,17 +391,22 @@ private fun SettingsMenuItem(
                 ),
                 shape = RoundedCornerShape(12.dp)
             )
-            .focusRequester(focusRequester)
             .onFocusChanged { focusState ->
+                isFocused = focusState.isFocused
                 if (focusState.isFocused) {
                     onFocused()
                 }
             }
+            .focusRequester(focusRequester)
             .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
                     when (keyEvent.key) {
                         Key.DirectionRight, Key.Enter, Key.NumPadEnter, Key.DirectionCenter -> {
                             onClick()
+                            true
+                        }
+                        Key.DirectionLeft, Key.Back -> {
+                            onBack()
                             true
                         }
                         else -> false
@@ -435,12 +452,10 @@ private fun HelpHubScreen(
     val soundManager = remember { TaloApplication.instance.soundEffectManager }
     val cardFocusRequesters = remember { List(4) { FocusRequester() } }
 
-    // Interception de la touche physique Retour de la télécommande
     BackHandler {
         onClose()
     }
 
-    // Mise au point immédiate sur la première carte au D-Pad
     LaunchedEffect(Unit) {
         delay(60)
         try {
@@ -467,9 +482,9 @@ private fun HelpHubScreen(
                 .padding(horizontal = 64.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Titre supérieur centré (Harmonisé avec le premier plan Réglages)
+            // Titre supérieur centré
             Text(
-                text = "Aide",
+                text = "Aide et support",
                 color = Color(0xCCFFFFFF),
                 fontSize = 24.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -517,7 +532,6 @@ private fun HelpHubScreen(
                             )
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            // Boîte blanche contrastée pour le QR Code
                             Box(
                                 modifier = Modifier
                                     .size(140.dp)
@@ -537,7 +551,7 @@ private fun HelpHubScreen(
 
                             Text(
                                 text = "github.com/sudo-aptttt/talo-tv/wiki",
-                                color = Color(0xFF0071E3),
+                                color = Color.White,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -552,8 +566,7 @@ private fun HelpHubScreen(
                     }
                 }
 
-                // COLONNE DROITE : 4 Cartes d'aide natives navigables au D-Pad
-                // Flèche Gauche ou Touche Retour ressort immédiatement
+                // COLONNE DROITE : 4 Cartes d'aide navigables au D-Pad
                 LazyColumn(
                     modifier = Modifier
                         .weight(1.2f)
@@ -563,8 +576,8 @@ private fun HelpHubScreen(
                 ) {
                     item {
                         HelpCardItem(
-                            title = "Raccourcis Télécommande",
-                            description = "• Accueil (Home) : Revenir au tableau de bord\n• Retour (Back) / Flèche Gauche : Revenir en arrière\n• D-Pad (Flèches) : Défilement fluide de l'interface",
+                            title = "Raccourcis Télécommande TV",
+                            description = "• Flèche Droite ou OK : Entrer dans une section ou valider un réglage\n• Flèche Gauche ou Touche Retour : Revenir en arrière\n• Touche Accueil (Home) : Revenir au tableau de bord",
                             focusRequester = cardFocusRequesters[0],
                             onFocused = { soundManager.playFocusSound() },
                             onExit = onClose
@@ -574,7 +587,7 @@ private fun HelpHubScreen(
                     item {
                         HelpCardItem(
                             title = "Mises à jour du système",
-                            description = "Talo OS vérifie automatiquement les mises à jour au démarrage. Code Downloader permanent : 6790525.",
+                            description = "Talo OS vérifie automatiquement les mises à jour au démarrage. Code Downloader permanent : 6790525 pour réinstaller ou mettre à niveau.",
                             focusRequester = cardFocusRequesters[1],
                             onFocused = { soundManager.playFocusSound() },
                             onExit = onClose
@@ -584,7 +597,7 @@ private fun HelpHubScreen(
                     item {
                         HelpCardItem(
                             title = "Confidentialité & Zéro Publicité",
-                            description = "Le bouclier Talo Privacy Shield est actif en temps réel. Zéro traqueur, zéro publicité, DRM Widevine L1 préservé.",
+                            description = "Le bouclier Talo Privacy Shield est actif en temps réel. Zéro traqueur, zéro publicité commerciale, DRM Widevine L1 préservé.",
                             focusRequester = cardFocusRequesters[2],
                             onFocused = { soundManager.playFocusSound() },
                             onExit = onClose
@@ -593,8 +606,8 @@ private fun HelpHubScreen(
 
                     item {
                         HelpCardItem(
-                            title = "Assistance & Signalement de bogue",
-                            description = "Redémarrez la box depuis Réglages > Système. Signalez les anomalies sur le dépôt GitHub du projet.",
+                            title = "Assistance & Maintenance",
+                            description = "Redémarrez le boîtier ou libérez la mémoire vive depuis Réglages > Système. En cas de dysfonctionnement, consultez le wiki GitHub.",
                             focusRequester = cardFocusRequesters[3],
                             onFocused = { soundManager.playFocusSound() },
                             onExit = onClose
@@ -608,7 +621,6 @@ private fun HelpHubScreen(
 
 /**
  * Carte d'information native optimisée pour l'écran TV avec navigation D-Pad
- * - Flèche Gauche ou Touche Retour ressort immédiatement du Hub
  */
 @Composable
 private fun HelpCardItem(
@@ -619,11 +631,7 @@ private fun HelpCardItem(
     onExit: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
-
-    LaunchedEffect(isFocused) {
-        if (isFocused) onFocused()
-    }
+    var isFocused by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.02f else 1.0f,
@@ -650,6 +658,12 @@ private fun HelpCardItem(
             .clip(RoundedCornerShape(16.dp))
             .background(bgColor)
             .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(16.dp))
+            .onFocusChanged { focusState ->
+                isFocused = focusState.isFocused
+                if (focusState.isFocused) {
+                    onFocused()
+                }
+            }
             .focusRequester(focusRequester)
             .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
@@ -658,11 +672,15 @@ private fun HelpCardItem(
                             onExit()
                             true
                         }
+                        Key.DirectionRight -> true
                         else -> false
                     }
                 } else false
             }
-            .focusable(interactionSource = interactionSource)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {}
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         Text(

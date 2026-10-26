@@ -317,10 +317,10 @@ private fun RemotesSubTabItem(
     onExit: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
+    var isFocused by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.03f else 1.0f,
+        targetValue = if (isFocused) 1.02f else 1.0f,
         animationSpec = tween(120),
         label = "subTabScale"
     )
@@ -328,7 +328,7 @@ private fun RemotesSubTabItem(
     val backgroundColor by animateColorAsState(
         targetValue = when {
             isFocused -> Color.White
-            isSelected -> Color(0x30FFFFFF)
+            isSelected -> Color(0x35FFFFFF)
             else -> Color(0x18FFFFFF)
         },
         animationSpec = tween(120),
@@ -339,7 +339,7 @@ private fun RemotesSubTabItem(
         targetValue = when {
             isFocused -> Color(0xFF0B0C0E)
             isSelected -> Color.White
-            else -> Color(0xFF8E8E93)
+            else -> Color(0x90FFFFFF)
         },
         animationSpec = tween(120),
         label = "subTabContent"
@@ -349,10 +349,20 @@ private fun RemotesSubTabItem(
         targetValue = when {
             isFocused -> Color(0xFF0B0C0E)
             isSelected -> Color(0x90FFFFFF)
-            else -> Color(0x50FFFFFF)
+            else -> Color(0x40FFFFFF)
         },
         animationSpec = tween(120),
         label = "subTabChevron"
+    )
+
+    val borderColor by animateColorAsState(
+        targetValue = when {
+            isFocused -> Color.White
+            isSelected -> Color(0x40FFFFFF)
+            else -> Color(0x0EFFFFFF)
+        },
+        animationSpec = tween(120),
+        label = "subTabBorder"
     )
 
     Row(
@@ -365,18 +375,16 @@ private fun RemotesSubTabItem(
             .clip(RoundedCornerShape(12.dp))
             .background(backgroundColor)
             .border(
-                BorderStroke(
-                    width = 1.dp,
-                    color = if (isFocused) Color.White else Color(0x14FFFFFF)
-                ),
+                BorderStroke(1.dp, borderColor),
                 shape = RoundedCornerShape(12.dp)
             )
-            .focusRequester(focusRequester)
             .onFocusChanged { focusState ->
+                isFocused = focusState.isFocused
                 if (focusState.isFocused) {
                     onFocused()
                 }
             }
+            .focusRequester(focusRequester)
             .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
                     when (keyEvent.key) {
@@ -973,7 +981,7 @@ private fun RemotesFindRemoteHeroCard(
     onToggleRinging: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
+    var isFocused by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.02f else 1.0f,
@@ -1002,6 +1010,7 @@ private fun RemotesFindRemoteHeroCard(
             .clip(RoundedCornerShape(16.dp))
             .background(bgColor)
             .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(16.dp))
+            .onFocusChanged { isFocused = it.isFocused }
             .focusRequester(focusRequester)
             .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
@@ -1124,7 +1133,7 @@ private fun RemotesActionCard(
     onClick: (() -> Unit)? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
+    var isFocused by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.02f else 1.0f,
@@ -1153,6 +1162,7 @@ private fun RemotesActionCard(
             .clip(RoundedCornerShape(14.dp))
             .background(bgColor)
             .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(14.dp))
+            .onFocusChanged { isFocused = it.isFocused }
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
@@ -1224,7 +1234,7 @@ private fun RemotesSwitchCard(
     onToggle: (Boolean) -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
+    var isFocused by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.02f else 1.0f,
@@ -1265,6 +1275,7 @@ private fun RemotesSwitchCard(
             .clip(RoundedCornerShape(14.dp))
             .background(bgColor)
             .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(14.dp))
+            .onFocusChanged { isFocused = it.isFocused }
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {

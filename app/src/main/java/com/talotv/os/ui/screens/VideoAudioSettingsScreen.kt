@@ -1,5 +1,7 @@
 package com.talotv.os.ui.screens
 
+import android.app.Activity
+import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -28,7 +30,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -38,6 +39,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -46,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
@@ -61,13 +64,14 @@ import com.talotv.os.TaloApplication
 import com.talotv.os.core.hardware.ProfileType
 import com.talotv.os.core.system.SystemSettingsController
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
- * 3 Sous-onglets de la section Vidéo et audio
+ * 3 Sous-onglets de la section Affichage et son
  */
 enum class VideoAudioSubTab(val title: String) {
-    DISPLAY_PERF("Affichage & Rendu"),
-    AUDIO("Audio & Sonorité"),
+    DISPLAY_PERF("Affichage & Rendu 4K"),
+    AUDIO("Audio & Son Surround"),
     CALIBRATION("Étalonnage TV & HDR")
 }
 
@@ -80,6 +84,7 @@ fun VideoAudioSettingsScreen(
     val soundManager = remember { TaloApplication.instance.soundEffectManager }
     val profileManager = remember { TaloApplication.instance.profileManager }
     val controller = remember { SystemSettingsController(context) }
+    val coroutineScope = rememberCoroutineScope()
 
     var selectedSubTabIndex by rememberSaveable { mutableIntStateOf(0) }
     var isDetailPaneActive by remember { mutableStateOf(false) }
@@ -122,66 +127,40 @@ fun VideoAudioSettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 48.dp, vertical = 20.dp)
+                .padding(horizontal = 64.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // EN-TÊTE
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(Color(0x18FFFFFF))
-                        .clickable { onClose() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Retour",
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
+            // Titre supérieur centré
+            Text(
+                text = "Affichage et son",
+                color = Color(0xCCFFFFFF),
+                fontSize = 24.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = 20.dp)
+            )
 
-                Spacer(modifier = Modifier.width(16.dp))
-
-                Column {
-                    Text(
-                        text = "Vidéo et audio",
-                        color = Color.White,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Profils de rendu graphique Talo OS, sortie acoustique et étalonnage 4K HDR",
-                        color = Color(0x88FFFFFF),
-                        fontSize = 12.sp
-                    )
-                }
-            }
-
-            // CORPS
+            // Conteneur deux colonnes (Master-Detail)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(28.dp)
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 // COLONNE GAUCHE (Sous-onglets)
-                Column(
+                LazyColumn(
                     modifier = Modifier
-                        .weight(1.0f)
+                        .weight(0.95f)
                         .fillMaxHeight(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    subTabs.forEachIndexed { index, subTab ->
-                        val isSelected = (index == selectedSubTabIndex)
+                    items(subTabs.size) { index ->
+                        val tab = subTabs[index]
+                        val isSelected = selectedSubTabIndex == index
+
                         VideoAudioSubTabItem(
-                            title = subTab.title,
+                            title = tab.title,
                             isSelected = isSelected,
                             isDetailPaneActive = isDetailPaneActive,
                             focusRequester = subTabFocusRequesters[index],
@@ -191,29 +170,37 @@ fun VideoAudioSettingsScreen(
                                     soundManager.playFocusSound()
                                 }
                             },
-                            onEnterDetail = {
-                                selectedSubTabIndex = index
-                                isDetailPaneActive = true
+                            onEnterRight = {
                                 soundManager.playSelectSound()
-                                try {
-                                    rightFirstFocusRequester.requestFocus()
-                                } catch (_: Exception) {}
-                            }
+                                isDetailPaneActive = true
+                                coroutineScope.launch {
+                                    delay(20)
+                                    try {
+                                        rightFirstFocusRequester.requestFocus()
+                                    } catch (_: Exception) {}
+                                }
+                            },
+                            onExit = onClose
                         )
                     }
                 }
 
-                // COLONNE DROITE (Contenu)
+                Spacer(modifier = Modifier.width(36.dp))
+
+                // COLONNE DROITE (Contenu dynamique)
                 Box(
                     modifier = Modifier
-                        .weight(1.8f)
-                        .fillMaxHeight()
+                        .weight(1.35f)
+                        .fillMaxHeight(),
+                    contentAlignment = Alignment.Center
                 ) {
                     when (subTabs[selectedSubTabIndex]) {
                         VideoAudioSubTab.DISPLAY_PERF -> DisplayPerfSubScreen(
+                            controller = controller,
                             firstItemFocusRequester = rightFirstFocusRequester,
                             onReturnLeft = {
                                 isDetailPaneActive = false
+                                soundManager.playFocusSound()
                                 try {
                                     subTabFocusRequesters.getOrNull(selectedSubTabIndex)?.requestFocus()
                                 } catch (_: Exception) {}
@@ -224,6 +211,7 @@ fun VideoAudioSettingsScreen(
                             firstItemFocusRequester = rightFirstFocusRequester,
                             onReturnLeft = {
                                 isDetailPaneActive = false
+                                soundManager.playFocusSound()
                                 try {
                                     subTabFocusRequesters.getOrNull(selectedSubTabIndex)?.requestFocus()
                                 } catch (_: Exception) {}
@@ -234,6 +222,7 @@ fun VideoAudioSettingsScreen(
                             firstItemFocusRequester = rightFirstFocusRequester,
                             onReturnLeft = {
                                 isDetailPaneActive = false
+                                soundManager.playFocusSound()
                                 try {
                                     subTabFocusRequesters.getOrNull(selectedSubTabIndex)?.requestFocus()
                                 } catch (_: Exception) {}
@@ -253,10 +242,11 @@ private fun VideoAudioSubTabItem(
     isDetailPaneActive: Boolean,
     focusRequester: FocusRequester,
     onFocused: () -> Unit,
-    onEnterDetail: () -> Unit
+    onEnterRight: () -> Unit,
+    onExit: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
+    var isFocused by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.02f else 1.0f,
@@ -264,36 +254,44 @@ private fun VideoAudioSubTabItem(
         label = "vaSubTabScale"
     )
 
-    val bgColor by animateColorAsState(
+    val backgroundColor by animateColorAsState(
         targetValue = when {
-            isFocused -> Color(0xFF2C303A)
-            isSelected && isDetailPaneActive -> Color(0x30FFFFFF)
-            isSelected -> Color(0x22FFFFFF)
-            else -> Color(0x10FFFFFF)
+            isFocused -> Color.White
+            isSelected -> Color(0x35FFFFFF)
+            else -> Color(0x18FFFFFF)
         },
         animationSpec = tween(120),
         label = "vaSubTabBg"
     )
 
+    val contentColor by animateColorAsState(
+        targetValue = when {
+            isFocused -> Color(0xFF0B0C0E)
+            isSelected -> Color.White
+            else -> Color(0x90FFFFFF)
+        },
+        animationSpec = tween(120),
+        label = "vaSubTabContent"
+    )
+
+    val chevronColor by animateColorAsState(
+        targetValue = when {
+            isFocused -> Color(0xFF0B0C0E)
+            isSelected -> Color(0x90FFFFFF)
+            else -> Color(0x40FFFFFF)
+        },
+        animationSpec = tween(120),
+        label = "vaSubTabChevron"
+    )
+
     val borderColor by animateColorAsState(
         targetValue = when {
             isFocused -> Color.White
-            isSelected && isDetailPaneActive -> Color(0x50FFFFFF)
-            isSelected -> Color(0x25FFFFFF)
-            else -> Color(0x0CFFFFFF)
+            isSelected -> Color(0x40FFFFFF)
+            else -> Color(0x0EFFFFFF)
         },
         animationSpec = tween(120),
         label = "vaSubTabBorder"
-    )
-
-    val textColor by animateColorAsState(
-        targetValue = when {
-            isFocused -> Color.White
-            isSelected -> Color.White
-            else -> Color(0x99FFFFFF)
-        },
-        animationSpec = tween(120),
-        label = "vaSubTabText"
     )
 
     Row(
@@ -301,14 +299,24 @@ private fun VideoAudioSubTabItem(
             .fillMaxWidth()
             .scale(scale)
             .clip(RoundedCornerShape(12.dp))
-            .background(bgColor)
+            .background(backgroundColor)
             .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(12.dp))
+            .onFocusChanged { focusState ->
+                isFocused = focusState.isFocused
+                if (focusState.isFocused) {
+                    onFocused()
+                }
+            }
             .focusRequester(focusRequester)
             .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
                     when (keyEvent.key) {
                         Key.DirectionRight, Key.Enter, Key.NumPadEnter, Key.DirectionCenter -> {
-                            onEnterDetail()
+                            onEnterRight()
+                            true
+                        }
+                        Key.DirectionLeft, Key.Back -> {
+                            onExit()
                             true
                         }
                         else -> false
@@ -319,7 +327,7 @@ private fun VideoAudioSubTabItem(
                 interactionSource = interactionSource,
                 indication = null
             ) {
-                onEnterDetail()
+                onEnterRight()
             }
             .padding(horizontal = 16.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -327,31 +335,34 @@ private fun VideoAudioSubTabItem(
     ) {
         Text(
             text = title,
-            color = textColor,
+            color = contentColor,
             fontSize = 14.5.sp,
             fontWeight = if (isSelected || isFocused) FontWeight.SemiBold else FontWeight.Medium
         )
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
-            tint = if (isFocused || isSelected) Color.White else Color(0x40FFFFFF),
+            tint = chevronColor,
             modifier = Modifier.size(15.dp)
         )
     }
 }
 
 // =============================================================================
-// 1. AFFICHAGE & RENDU
+// 1. AFFICHAGE & RENDU 4K
 // =============================================================================
 
 @Composable
 private fun DisplayPerfSubScreen(
+    controller: SystemSettingsController,
     firstItemFocusRequester: FocusRequester,
     onReturnLeft: () -> Unit
 ) {
     val soundManager = remember { TaloApplication.instance.soundEffectManager }
     val profileManager = remember { TaloApplication.instance.profileManager }
+
     var currentProfile by remember { mutableStateOf(profileManager.getCurrentProfileType()) }
+    var allmEnabled by rememberSaveable { mutableStateOf(true) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -359,42 +370,59 @@ private fun DisplayPerfSubScreen(
     ) {
         item {
             VideoAudioActionCard(
-                title = "Profil de performance Talo OS",
-                description = "Sélectionnez le niveau d'optimisation graphique du système : Éco (économie GPU), Standard (optimal 60 FPS avec flou fluide), Ultra (qualité visuelle maximale). Cliquez pour basculer.",
-                badgeText = currentProfile.name,
+                title = "Résolution & Fréquence d'actualisation",
+                description = "4K Ultra HD (3840 x 2160) à 60 Hz avec sortie HDMI 2.1 eARC pour une fluidité absolue sans saccade.",
+                badgeText = "3840x2160 @ 60Hz",
                 badgeColor = Color(0xFF34C759),
                 focusRequester = firstItemFocusRequester,
                 onReturnLeft = onReturnLeft,
                 onClick = {
                     soundManager.playSelectSound()
-                    val next = when (currentProfile) {
-                        ProfileType.ECO -> ProfileType.STANDARD
-                        ProfileType.STANDARD -> ProfileType.ULTRA
-                        ProfileType.ULTRA -> ProfileType.ECO
-                        else -> ProfileType.STANDARD
-                    }
-                    profileManager.setProfileType(next)
-                    currentProfile = next
+                    controller.openSystemDisplaySettings()
+                }
+            )
+        }
+
+        item {
+            VideoAudioSwitchCard(
+                title = "Mode Jeu automatique (ALLM)",
+                description = "Active le mode Faible Latence Automatique sur votre téléviseur dès qu'une manette de jeu ou un jeu vidéo est détecté.",
+                checked = allmEnabled,
+                onReturnLeft = onReturnLeft,
+                onToggle = { enable ->
+                    allmEnabled = enable
+                    soundManager.playSelectSound()
                 }
             )
         }
 
         item {
             VideoAudioActionCard(
-                title = "Effets Frosted Glass (Verre dépoli)",
-                description = "Flou gaussien immersif en temps réel sous les fenêtres de navigation et les panneaux de réglages.",
-                badgeText = "Activé",
-                badgeColor = Color(0x28FFFFFF),
-                onReturnLeft = onReturnLeft
+                title = "Profil de performance graphique Talo",
+                description = "Profil actif : ${currentProfile.name}. Adapte dynamiquement la fréquence du processeur et les shaders de l'interface TV.",
+                badgeText = currentProfile.name,
+                badgeColor = Color(0xFF34C759),
+                onReturnLeft = onReturnLeft,
+                onClick = {
+                    soundManager.playSelectSound()
+                    val nextProfile = when (currentProfile) {
+                        ProfileType.STANDARD -> ProfileType.ULTRA
+                        ProfileType.ULTRA -> ProfileType.ECO
+                        ProfileType.ECO -> ProfileType.STANDARD
+                        else -> ProfileType.STANDARD
+                    }
+                    profileManager.setProfileType(nextProfile)
+                    currentProfile = nextProfile
+                }
             )
         }
 
         item {
             VideoAudioActionCard(
-                title = "Fréquence d'affichage cible de l'UI",
-                description = "Moteur de rendu Jetpack Compose cadencé à 60 images par seconde constantes pour une réactivité instantanée à la télécommande.",
-                badgeText = "60 FPS",
-                badgeColor = Color(0x28FFFFFF),
+                title = "Accélération matérielle Vulkan / GLES",
+                description = "Composition visuelle accélérée par processeur graphique avec mémoire tampon triple buffering pour 60 i/s constants.",
+                badgeText = "Vulkan 1.3",
+                badgeColor = Color(0x35FFFFFF),
                 onReturnLeft = onReturnLeft
             )
         }
@@ -402,7 +430,7 @@ private fun DisplayPerfSubScreen(
 }
 
 // =============================================================================
-// 2. AUDIO & SONORITÉ
+// 2. AUDIO & SON SURROUND
 // =============================================================================
 
 @Composable
@@ -412,47 +440,88 @@ private fun AudioSubScreen(
     onReturnLeft: () -> Unit
 ) {
     val soundManager = remember { TaloApplication.instance.soundEffectManager }
-    var isSoundEnabled by remember { mutableStateOf(soundManager.isSoundEnabled()) }
+
+    val audioOutputs = listOf("Automatique (HDMI eARC)", "Haut-parleurs TV", "Sortie optique S/PDIF", "Bluetooth")
+    var selectedOutputIndex by rememberSaveable { mutableIntStateOf(0) }
+
+    val surroundModes = listOf("Automatique (Recommandé)", "Dolby Digital Plus", "Dolby Digital", "PCM Stéréo")
+    var selectedSurroundIndex by rememberSaveable { mutableIntStateOf(0) }
+    var nightModeEnabled by rememberSaveable { mutableStateOf(false) }
+    var navSoundsEnabled by rememberSaveable { mutableStateOf(soundManager.isSoundEnabled()) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically)
     ) {
         item {
-            VideoAudioSwitchCard(
-                title = "Effets sonores de navigation",
-                description = "Émet un son doux lors de chaque déplacement et de chaque clic dans l'interface de Talo OS.",
-                checked = isSoundEnabled,
+            VideoAudioActionCard(
+                title = "Sortie audio principale",
+                description = "Destination du flux audio : ${audioOutputs[selectedOutputIndex]}. Prise en charge eARC à très haut débit.",
+                badgeText = audioOutputs[selectedOutputIndex],
+                badgeColor = Color(0xFF34C759),
                 focusRequester = firstItemFocusRequester,
                 onReturnLeft = onReturnLeft,
-                onToggle = { enabled ->
-                    soundManager.setSoundEnabled(enabled)
-                    controller.setNavigationSounds(enabled)
-                    isSoundEnabled = enabled
-                    if (enabled) {
-                        soundManager.playSelectSound()
-                    }
+                onClick = {
+                    soundManager.playSelectSound()
+                    selectedOutputIndex = (selectedOutputIndex + 1) % audioOutputs.size
                 }
             )
         }
 
         item {
             VideoAudioActionCard(
-                title = "Sortie audio principale",
-                description = "Diffusion sonore configurée vers vos haut-parleurs TV ou votre barre de son connectée en HDMI eARC / optique.",
-                badgeText = "Auto (eARC)",
-                badgeColor = Color(0x35FFFFFF),
-                onReturnLeft = onReturnLeft
+                title = "Format audio Surround",
+                description = "Format actif : ${surroundModes[selectedSurroundIndex]}. Détection et décodage multicanal automatique par HDMI eARC ou optique.",
+                badgeText = surroundModes[selectedSurroundIndex],
+                badgeColor = Color(0xFF34C759),
+                onReturnLeft = onReturnLeft,
+                onClick = {
+                    soundManager.playSelectSound()
+                    selectedSurroundIndex = (selectedSurroundIndex + 1) % surroundModes.size
+                    controller.setSurroundMode(surroundModes[selectedSurroundIndex])
+                }
+            )
+        }
+
+        item {
+            VideoAudioSwitchCard(
+                title = "Mode Nuit (Atténuation des bruits forts)",
+                description = "Compresse la plage dynamique audio pour rendre les chuchotements intelligibles et adoucir les explosions nocturnes.",
+                checked = nightModeEnabled,
+                onReturnLeft = onReturnLeft,
+                onToggle = { enable ->
+                    nightModeEnabled = enable
+                    soundManager.playSelectSound()
+                }
+            )
+        }
+
+        item {
+            VideoAudioSwitchCard(
+                title = "Sons de navigation de l'interface",
+                description = "Retour sonore discret lors du déplacement du curseur D-Pad et de la validation des éléments.",
+                checked = navSoundsEnabled,
+                onReturnLeft = onReturnLeft,
+                onToggle = { enable ->
+                    navSoundsEnabled = enable
+                    soundManager.setSoundEnabled(enable)
+                    controller.setNavigationSounds(enable)
+                    if (enable) soundManager.playSelectSound()
+                }
             )
         }
 
         item {
             VideoAudioActionCard(
-                title = "Formats audio cinéma pris en charge",
-                description = "Transmission numérique Passthrough pour Dolby Atmos, Dolby Digital Plus, DTS:X et PCM Multicanal 7.1.",
-                badgeText = "Dolby Atmos / DTS",
-                badgeColor = Color(0x28FFFFFF),
-                onReturnLeft = onReturnLeft
+                title = "Égaliseur et réglages audio système",
+                description = "Ouvre les paramètres avancés de la sortie audio, du volume absolu et de la synchronisation labiale (A/V sync).",
+                badgeText = "Paramètres",
+                badgeColor = Color(0x35FFFFFF),
+                onReturnLeft = onReturnLeft,
+                onClick = {
+                    soundManager.playSelectSound()
+                    controller.openSystemSoundSettings()
+                }
             )
         }
     }
@@ -470,49 +539,58 @@ private fun CalibrationSubScreen(
 ) {
     val soundManager = remember { TaloApplication.instance.soundEffectManager }
 
+    var matchFrameRate by rememberSaveable { mutableStateOf(true) }
+    var hdrEnabled by rememberSaveable { mutableStateOf(true) }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically)
     ) {
         item {
-            VideoAudioActionCard(
-                title = "Réglages d'affichage et son de la TV",
-                description = "Ouvre directement le menu système officiel de la TV pour calibrer la résolution 4K Ultra HD, le format de couleur et la plage dynamique HDR10+ / Dolby Vision.",
-                badgeText = "Ouvrir",
-                badgeColor = Color(0xFF34C759),
+            VideoAudioSwitchCard(
+                title = "Ajustement de la fréquence au contenu (Match Frame Rate)",
+                description = "Synchronise automatiquement la fréquence de la dalle (24 Hz cinéma, 50 Hz européen, 60 Hz) avec la source du film pour éliminer le judder.",
+                checked = matchFrameRate,
                 focusRequester = firstItemFocusRequester,
                 onReturnLeft = onReturnLeft,
-                onClick = {
+                onToggle = { enable ->
+                    matchFrameRate = enable
                     soundManager.playSelectSound()
-                    controller.openHdmiCecSettings()
+                }
+            )
+        }
+
+        item {
+            VideoAudioSwitchCard(
+                title = "Plage dynamique étendue (HDR10+ / Dolby Vision)",
+                description = "Transmet les métadonnées dynamiques au téléviseur pour des noirs profonds et des pics lumineux éclatants.",
+                checked = hdrEnabled,
+                onReturnLeft = onReturnLeft,
+                onToggle = { enable ->
+                    hdrEnabled = enable
+                    soundManager.playSelectSound()
                 }
             )
         }
 
         item {
             VideoAudioActionCard(
-                title = "Fréquence d'images dynamique (Match Frame Rate)",
-                description = "Adapte automatiquement la fréquence de la dalle TV (24 Hz cinéma, 50 Hz TV européenne, 60 Hz) au flux vidéo diffusé.",
-                badgeText = "Pris en charge",
-                badgeColor = Color(0x28FFFFFF),
-                onReturnLeft = onReturnLeft
-            )
-        }
-
-        item {
-            VideoAudioActionCard(
-                title = "Mode Faible Latence Automatique (ALLM)",
-                description = "Bascule automatiquement votre téléviseur en mode Jeu à très faible latence dès le lancement d'une application ou d'un jeu vidéo.",
-                badgeText = "ALLM Actif",
-                badgeColor = Color(0x28FFFFFF),
-                onReturnLeft = onReturnLeft
+                title = "Mire d'étalonnage et surbalayage (Overscan)",
+                description = "Vérifier que les 4 coins de l'image coïncident exactement avec les bords physiques de votre dalle TV (pixel matching 1:1).",
+                badgeText = "Mire 1:1",
+                badgeColor = Color(0x35FFFFFF),
+                onReturnLeft = onReturnLeft,
+                onClick = {
+                    soundManager.playSelectSound()
+                    controller.openSystemDisplaySettings()
+                }
             )
         }
     }
 }
 
 // =============================================================================
-// COMPOSANTS DE CARTES HARMONISÉS
+// COMPOSANTS CARTE HARMONISÉS
 // =============================================================================
 
 @Composable
@@ -526,7 +604,7 @@ private fun VideoAudioActionCard(
     onClick: (() -> Unit)? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
+    var isFocused by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.02f else 1.0f,
@@ -555,6 +633,7 @@ private fun VideoAudioActionCard(
             .clip(RoundedCornerShape(14.dp))
             .background(bgColor)
             .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(14.dp))
+            .onFocusChanged { isFocused = it.isFocused }
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
@@ -565,10 +644,8 @@ private fun VideoAudioActionCard(
                         }
                         Key.DirectionRight -> true
                         Key.Enter, Key.NumPadEnter, Key.DirectionCenter -> {
-                            if (onClick != null) {
-                                onClick()
-                                true
-                            } else false
+                            onClick?.invoke()
+                            true
                         }
                         else -> false
                     }
@@ -576,8 +653,7 @@ private fun VideoAudioActionCard(
             }
             .clickable(
                 interactionSource = interactionSource,
-                indication = null,
-                enabled = onClick != null
+                indication = null
             ) {
                 onClick?.invoke()
             }
@@ -604,13 +680,13 @@ private fun VideoAudioActionCard(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(badgeColor)
+                    .background(if (isFocused && onClick != null) Color.White else badgeColor)
                     .padding(horizontal = 14.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = badgeText,
-                    color = Color.White,
+                    color = if (isFocused && onClick != null) Color(0xFF0B0C0E) else Color.White,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -629,7 +705,7 @@ private fun VideoAudioSwitchCard(
     onToggle: (Boolean) -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
+    var isFocused by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.02f else 1.0f,
@@ -670,6 +746,7 @@ private fun VideoAudioSwitchCard(
             .clip(RoundedCornerShape(14.dp))
             .background(bgColor)
             .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(14.dp))
+            .onFocusChanged { isFocused = it.isFocused }
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {

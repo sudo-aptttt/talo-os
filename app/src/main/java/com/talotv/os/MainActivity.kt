@@ -67,7 +67,11 @@ class MainActivity : ComponentActivity() {
         checkAndRequestRequiredPermissions()
 
         val isCalibrated = (application as TaloApplication).profileManager.isCalibrated()
-        currentScreen.value = if (isCalibrated) ScreenState.HOME else ScreenState.OOBE
+        currentScreen.value = when {
+            intent?.getStringExtra("screen") == "settings" -> ScreenState.SETTINGS
+            isCalibrated -> ScreenState.HOME
+            else -> ScreenState.OOBE
+        }
 
         setContent {
             TaloOSTheme {
@@ -112,6 +116,11 @@ class MainActivity : ComponentActivity() {
         } else if (intent.getBooleanExtra("TEST_UNLOCK", false)) {
             CloudSyncManager.isTestLockActive = false
             CloudSyncManager.unlockLocally(this)
+            return
+        }
+
+        if (intent.getStringExtra("screen") == "settings") {
+            currentScreen.value = ScreenState.SETTINGS
             return
         }
 

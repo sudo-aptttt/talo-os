@@ -60,28 +60,14 @@ fun ProfileSwitcherDialog(
             .padding(24.dp)
     ) {
         Column {
-            // Header with Back Arrow
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable { onDismiss() }
-                    .padding(vertical = 4.dp, horizontal = 6.dp)
-            ) {
-                Text(
-                    text = "‹",
-                    color = Color.White,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Light
-                )
-                Text(
-                    text = "Changer d'utilisateur",
-                    color = TaloTextPrimary,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
+            // Header
+            Text(
+                text = "Changer d'utilisateur",
+                color = TaloTextPrimary,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
 

@@ -353,7 +353,7 @@ private fun SystemSubTabItem(
     onExit: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
+    var isFocused by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.02f else 1.0f,
@@ -365,7 +365,7 @@ private fun SystemSubTabItem(
         targetValue = when {
             isFocused -> Color.White
             isSelected -> Color(0x35FFFFFF)
-            else -> Color(0x20FFFFFF)
+            else -> Color(0x18FFFFFF)
         },
         animationSpec = tween(120),
         label = "subTabBg"
@@ -375,7 +375,7 @@ private fun SystemSubTabItem(
         targetValue = when {
             isFocused -> Color(0xFF0B0C0E)
             isSelected -> Color.White
-            else -> Color(0xFFF2F2F7)
+            else -> Color(0x90FFFFFF)
         },
         animationSpec = tween(120),
         label = "subTabContent"
@@ -385,10 +385,20 @@ private fun SystemSubTabItem(
         targetValue = when {
             isFocused -> Color(0xFF0B0C0E)
             isSelected -> Color(0x90FFFFFF)
-            else -> Color(0x50FFFFFF)
+            else -> Color(0x40FFFFFF)
         },
         animationSpec = tween(120),
         label = "subTabChevron"
+    )
+
+    val borderColor by animateColorAsState(
+        targetValue = when {
+            isFocused -> Color.White
+            isSelected -> Color(0x40FFFFFF)
+            else -> Color(0x0EFFFFFF)
+        },
+        animationSpec = tween(120),
+        label = "subTabBorder"
     )
 
     Row(
@@ -401,18 +411,16 @@ private fun SystemSubTabItem(
             .clip(RoundedCornerShape(12.dp))
             .background(backgroundColor)
             .border(
-                BorderStroke(
-                    width = 1.dp,
-                    color = if (isFocused) Color.White else Color(0x14FFFFFF)
-                ),
+                BorderStroke(1.dp, borderColor),
                 shape = RoundedCornerShape(12.dp)
             )
-            .focusRequester(focusRequester)
             .onFocusChanged { focusState ->
+                isFocused = focusState.isFocused
                 if (focusState.isFocused) {
                     onFocused()
                 }
             }
+            .focusRequester(focusRequester)
             .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
                     when (keyEvent.key) {
@@ -513,7 +521,7 @@ private fun AboutSubScreen(
                 title = "Mémoire vive (RAM)",
                 subtitle = String.format(Locale.US, "%.1f Go utilisés sur %.1f Go (%.0f%%)", ramUsed, ramTotal, ramProgress * 100),
                 progress = ramProgress,
-                fillColor = Color(0xFF0071E3),
+                fillColor = Color(0xFF5E5CE6),
                 onReturnLeft = onReturnLeft
             )
         }
@@ -727,7 +735,7 @@ private fun OptimizationSubScreen(
                 title = "État de la mémoire vive en direct",
                 subtitle = String.format(Locale.US, "%.1f Go disponibles sur %.1f Go", ramData.first, ramData.second),
                 progress = ramProgress,
-                fillColor = Color(0xFF0071E3),
+                fillColor = Color(0xFF5E5CE6),
                 onReturnLeft = onReturnLeft
             )
         }
@@ -832,7 +840,7 @@ private fun SystemActionCard(
     onClick: (() -> Unit)? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
+    var isFocused by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.02f else 1.0f,
@@ -861,6 +869,7 @@ private fun SystemActionCard(
             .clip(RoundedCornerShape(14.dp))
             .background(bgColor)
             .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(14.dp))
+            .onFocusChanged { isFocused = it.isFocused }
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
@@ -928,10 +937,11 @@ private fun SystemGaugeCard(
     subtitle: String,
     progress: Float,
     fillColor: Color,
+    focusRequester: FocusRequester? = null,
     onReturnLeft: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
+    var isFocused by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.02f else 1.0f,
@@ -958,6 +968,8 @@ private fun SystemGaugeCard(
             .clip(RoundedCornerShape(14.dp))
             .background(bgColor)
             .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(14.dp))
+            .onFocusChanged { isFocused = it.isFocused }
+            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
                     when (keyEvent.key) {
@@ -970,7 +982,10 @@ private fun SystemGaugeCard(
                     }
                 } else false
             }
-            .focusable(interactionSource = interactionSource)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {}
             .padding(horizontal = 20.dp, vertical = 14.dp)
     ) {
         Row(

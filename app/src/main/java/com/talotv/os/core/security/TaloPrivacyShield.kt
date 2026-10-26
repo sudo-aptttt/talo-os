@@ -83,7 +83,7 @@ object TaloPrivacyShield {
                 // 1. Enforce zero-telemetry in System Settings (Opt-out)
                 neutralizeSystemAdTracking(context)
 
-                // 2. Mute known OEM & Google/Amazon telemetry components
+                // 2. Mute known OEM & commercial tracking telemetry components
                 val pm = context.packageManager
                 for ((pkg, cls) in KNOWN_TRACKING_COMPONENTS) {
                     try {

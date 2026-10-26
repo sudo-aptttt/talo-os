@@ -1,8 +1,10 @@
 package com.talotv.os.ui.screens
 
 import android.content.Intent
+import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -27,9 +30,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
@@ -64,12 +66,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * 4 Sous-onglets de la section Réseau
+ * 4 Sous-onglets de la section Réseau et Internet
  */
 enum class NetworkSubTab(val title: String) {
-    STATUS("État du réseau"),
-    SPEED_TEST("Test de débit & Ping"),
-    CONFIG("Configuration IP"),
+    STATUS("État de la connexion"),
+    SPEED_TEST("Test de débit & Latence"),
+    CONFIG("Configuration IP et DNS"),
     SETUP("Gérer les réseaux Wi-Fi")
 }
 
@@ -81,6 +83,7 @@ fun NetworkSettingsScreen(
     val context = LocalContext.current
     val soundManager = remember { TaloApplication.instance.soundEffectManager }
     val controller = remember { SystemSettingsController(context) }
+    val coroutineScope = rememberCoroutineScope()
 
     var selectedSubTabIndex by rememberSaveable { mutableIntStateOf(0) }
     var isDetailPaneActive by remember { mutableStateOf(false) }
@@ -123,66 +126,40 @@ fun NetworkSettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 48.dp, vertical = 20.dp)
+                .padding(horizontal = 64.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // EN-TÊTE
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(Color(0x18FFFFFF))
-                        .clickable { onClose() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Retour",
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
+            // Titre supérieur centré
+            Text(
+                text = "Réseau et Internet",
+                color = Color(0xCCFFFFFF),
+                fontSize = 24.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = 20.dp)
+            )
 
-                Spacer(modifier = Modifier.width(16.dp))
-
-                Column {
-                    Text(
-                        text = "Réseau",
-                        color = Color.White,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Connexion Wi-Fi, Ethernet, diagnostics de bande passante et latence",
-                        color = Color(0x88FFFFFF),
-                        fontSize = 12.sp
-                    )
-                }
-            }
-
-            // CORPS
+            // Conteneur deux colonnes (Master-Detail)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(28.dp)
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 // COLONNE GAUCHE (Sous-onglets)
-                Column(
+                LazyColumn(
                     modifier = Modifier
-                        .weight(1.0f)
+                        .weight(0.95f)
                         .fillMaxHeight(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    subTabs.forEachIndexed { index, subTab ->
-                        val isSelected = (index == selectedSubTabIndex)
+                    items(subTabs.size) { index ->
+                        val tab = subTabs[index]
+                        val isSelected = selectedSubTabIndex == index
+
                         NetworkSubTabItem(
-                            title = subTab.title,
+                            title = tab.title,
                             isSelected = isSelected,
                             isDetailPaneActive = isDetailPaneActive,
                             focusRequester = subTabFocusRequesters[index],
@@ -192,23 +169,29 @@ fun NetworkSettingsScreen(
                                     soundManager.playFocusSound()
                                 }
                             },
-                            onEnterDetail = {
-                                selectedSubTabIndex = index
-                                isDetailPaneActive = true
+                            onEnterRight = {
                                 soundManager.playSelectSound()
-                                try {
-                                    rightFirstFocusRequester.requestFocus()
-                                } catch (_: Exception) {}
-                            }
+                                isDetailPaneActive = true
+                                coroutineScope.launch {
+                                    delay(20)
+                                    try {
+                                        rightFirstFocusRequester.requestFocus()
+                                    } catch (_: Exception) {}
+                                }
+                            },
+                            onExit = onClose
                         )
                     }
                 }
 
-                // COLONNE DROITE (Contenu)
+                Spacer(modifier = Modifier.width(36.dp))
+
+                // COLONNE DROITE (Contenu dynamique)
                 Box(
                     modifier = Modifier
-                        .weight(1.8f)
-                        .fillMaxHeight()
+                        .weight(1.35f)
+                        .fillMaxHeight(),
+                    contentAlignment = Alignment.Center
                 ) {
                     when (subTabs[selectedSubTabIndex]) {
                         NetworkSubTab.STATUS -> NetworkStatusSubScreen(
@@ -216,6 +199,7 @@ fun NetworkSettingsScreen(
                             firstItemFocusRequester = rightFirstFocusRequester,
                             onReturnLeft = {
                                 isDetailPaneActive = false
+                                soundManager.playFocusSound()
                                 try {
                                     subTabFocusRequesters.getOrNull(selectedSubTabIndex)?.requestFocus()
                                 } catch (_: Exception) {}
@@ -226,6 +210,7 @@ fun NetworkSettingsScreen(
                             firstItemFocusRequester = rightFirstFocusRequester,
                             onReturnLeft = {
                                 isDetailPaneActive = false
+                                soundManager.playFocusSound()
                                 try {
                                     subTabFocusRequesters.getOrNull(selectedSubTabIndex)?.requestFocus()
                                 } catch (_: Exception) {}
@@ -236,15 +221,18 @@ fun NetworkSettingsScreen(
                             firstItemFocusRequester = rightFirstFocusRequester,
                             onReturnLeft = {
                                 isDetailPaneActive = false
+                                soundManager.playFocusSound()
                                 try {
                                     subTabFocusRequesters.getOrNull(selectedSubTabIndex)?.requestFocus()
                                 } catch (_: Exception) {}
                             }
                         )
                         NetworkSubTab.SETUP -> WifiSetupSubScreen(
+                            controller = controller,
                             firstItemFocusRequester = rightFirstFocusRequester,
                             onReturnLeft = {
                                 isDetailPaneActive = false
+                                soundManager.playFocusSound()
                                 try {
                                     subTabFocusRequesters.getOrNull(selectedSubTabIndex)?.requestFocus()
                                 } catch (_: Exception) {}
@@ -264,10 +252,11 @@ private fun NetworkSubTabItem(
     isDetailPaneActive: Boolean,
     focusRequester: FocusRequester,
     onFocused: () -> Unit,
-    onEnterDetail: () -> Unit
+    onEnterRight: () -> Unit,
+    onExit: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
+    var isFocused by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.02f else 1.0f,
@@ -275,36 +264,44 @@ private fun NetworkSubTabItem(
         label = "netSubTabScale"
     )
 
-    val bgColor by animateColorAsState(
+    val backgroundColor by animateColorAsState(
         targetValue = when {
-            isFocused -> Color(0xFF2C303A)
-            isSelected && isDetailPaneActive -> Color(0x30FFFFFF)
-            isSelected -> Color(0x22FFFFFF)
-            else -> Color(0x10FFFFFF)
+            isFocused -> Color.White
+            isSelected -> Color(0x35FFFFFF)
+            else -> Color(0x18FFFFFF)
         },
         animationSpec = tween(120),
         label = "netSubTabBg"
     )
 
+    val contentColor by animateColorAsState(
+        targetValue = when {
+            isFocused -> Color(0xFF0B0C0E)
+            isSelected -> Color.White
+            else -> Color(0x90FFFFFF)
+        },
+        animationSpec = tween(120),
+        label = "netSubTabContent"
+    )
+
+    val chevronColor by animateColorAsState(
+        targetValue = when {
+            isFocused -> Color(0xFF0B0C0E)
+            isSelected -> Color(0x90FFFFFF)
+            else -> Color(0x40FFFFFF)
+        },
+        animationSpec = tween(120),
+        label = "netSubTabChevron"
+    )
+
     val borderColor by animateColorAsState(
         targetValue = when {
             isFocused -> Color.White
-            isSelected && isDetailPaneActive -> Color(0x50FFFFFF)
-            isSelected -> Color(0x25FFFFFF)
-            else -> Color(0x0CFFFFFF)
+            isSelected -> Color(0x40FFFFFF)
+            else -> Color(0x0EFFFFFF)
         },
         animationSpec = tween(120),
         label = "netSubTabBorder"
-    )
-
-    val textColor by animateColorAsState(
-        targetValue = when {
-            isFocused -> Color.White
-            isSelected -> Color.White
-            else -> Color(0x99FFFFFF)
-        },
-        animationSpec = tween(120),
-        label = "netSubTabText"
     )
 
     Row(
@@ -312,14 +309,24 @@ private fun NetworkSubTabItem(
             .fillMaxWidth()
             .scale(scale)
             .clip(RoundedCornerShape(12.dp))
-            .background(bgColor)
+            .background(backgroundColor)
             .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(12.dp))
+            .onFocusChanged { focusState ->
+                isFocused = focusState.isFocused
+                if (focusState.isFocused) {
+                    onFocused()
+                }
+            }
             .focusRequester(focusRequester)
             .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
                     when (keyEvent.key) {
                         Key.DirectionRight, Key.Enter, Key.NumPadEnter, Key.DirectionCenter -> {
-                            onEnterDetail()
+                            onEnterRight()
+                            true
+                        }
+                        Key.DirectionLeft, Key.Back -> {
+                            onExit()
                             true
                         }
                         else -> false
@@ -330,7 +337,7 @@ private fun NetworkSubTabItem(
                 interactionSource = interactionSource,
                 indication = null
             ) {
-                onEnterDetail()
+                onEnterRight()
             }
             .padding(horizontal = 16.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -338,21 +345,21 @@ private fun NetworkSubTabItem(
     ) {
         Text(
             text = title,
-            color = textColor,
+            color = contentColor,
             fontSize = 14.5.sp,
             fontWeight = if (isSelected || isFocused) FontWeight.SemiBold else FontWeight.Medium
         )
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
-            tint = if (isFocused || isSelected) Color.White else Color(0x40FFFFFF),
+            tint = chevronColor,
             modifier = Modifier.size(15.dp)
         )
     }
 }
 
 // =============================================================================
-// 1. ÉTAT DU RÉSEAU
+// 1. ÉTAT DE LA CONNEXION
 // =============================================================================
 
 @Composable
@@ -361,7 +368,6 @@ private fun NetworkStatusSubScreen(
     firstItemFocusRequester: FocusRequester,
     onReturnLeft: () -> Unit
 ) {
-    val soundManager = remember { TaloApplication.instance.soundEffectManager }
     val ssid = remember { controller.getConnectedSsid() }
     val networkLabel = if (!ssid.isNullOrBlank()) "Wi-Fi : $ssid" else "Ethernet filaire"
 
@@ -382,8 +388,8 @@ private fun NetworkStatusSubScreen(
 
         item {
             NetworkActionCard(
-                title = "Statut Internet",
-                description = "Accès aux serveurs Google TV, flux vidéo 4K HDR et synchronisation du catalogue Talo OS opérationnels.",
+                title = "Statut des services en ligne",
+                description = "Accès aux serveurs multimédias, flux vidéo 4K HDR et synchronisation du catalogue Talo OS opérationnels.",
                 badgeText = "En ligne",
                 badgeColor = Color(0xFF34C759),
                 onReturnLeft = onReturnLeft
@@ -393,7 +399,7 @@ private fun NetworkStatusSubScreen(
         item {
             NetworkActionCard(
                 title = "Vitesse de liaison théorique",
-                description = "Bande passante négociée avec votre box / routeur Wi-Fi : jusqu'à 866 Mbps (MIMO 2x2).",
+                description = "Bande passante négociée avec votre équipement réseau : jusqu'à 866 Mbps (MIMO 2x2 double bande).",
                 badgeText = "866 Mbps",
                 badgeColor = Color(0x28FFFFFF),
                 onReturnLeft = onReturnLeft
@@ -403,7 +409,7 @@ private fun NetworkStatusSubScreen(
 }
 
 // =============================================================================
-// 2. TEST DE DÉBIT & PING
+// 2. TEST DE DÉBIT & LATENCE
 // =============================================================================
 
 @Composable
@@ -430,9 +436,9 @@ private fun SpeedTestSubScreen(
                 description = if (isTesting) {
                     "Mesure de la latence réseau (ping) et calcul du débit descendant en temps réel..."
                 } else if (speedMbps != null) {
-                    "Débit descendant mesuré : $speedMbps Mbps\nLatence réseau : ${pingMs ?: 12} ms (IP : ${testedIp ?: "192.168.1.42"})\nPerformances optimales pour le streaming 4K Ultra HD Dolby Vision."
+                    "Débit descendant mesuré : $speedMbps Mbps\nLatence réseau : ${pingMs ?: 12} ms (IP locale : ${testedIp ?: "192.168.1.42"})\nPerformances optimales pour le streaming 4K Ultra HD Dolby Vision."
                 } else {
-                    "Cliquez pour évaluer instantanément la latence et la stabilité de votre connexion Internet pour le streaming vidéo 4K."
+                    "Appuyez sur OK pour évaluer instantanément la latence et la stabilité de votre connexion Internet pour le streaming vidéo 4K."
                 },
                 badgeText = if (isTesting) "Mesure..." else if (speedMbps != null) "$speedMbps Mbps" else "Tester",
                 badgeColor = if (speedMbps != null) Color(0xFF34C759) else Color(0x35FFFFFF),
@@ -458,7 +464,7 @@ private fun SpeedTestSubScreen(
         item {
             NetworkActionCard(
                 title = "Indicateur de compatibilité vidéo",
-                description = "• Débit requis pour HD 1080p : 5 Mbps\n• Débit requis pour 4K UHD : 25 Mbps\n• Débit requis pour 4K HDR Dolby Vision non compressé : 50+ Mbps.",
+                description = "• Débit requis pour HD 1080p : 5 Mbps\n• Débit requis pour 4K UHD : 25 Mbps\n• Débit requis pour 4K HDR sans compression : 50+ Mbps.",
                 badgeText = "Certifié 4K",
                 badgeColor = Color(0xFF34C759),
                 onReturnLeft = onReturnLeft
@@ -468,7 +474,7 @@ private fun SpeedTestSubScreen(
 }
 
 // =============================================================================
-// 3. CONFIGURATION IP
+// 3. CONFIGURATION IP ET DNS
 // =============================================================================
 
 @Composable
@@ -495,7 +501,7 @@ private fun IpConfigSubScreen(
         item {
             NetworkActionCard(
                 title = "Serveurs de noms de domaine (DNS)",
-                description = "Résolution sécurisée et rapide des adresses de vos applications de streaming : 1.1.1.1 (Cloudflare) / 8.8.8.8 (Google).",
+                description = "Résolution sécurisée et rapide des adresses de streaming via DNS chiffré à faible latence.",
                 badgeText = "DNS Sécurisé",
                 badgeColor = Color(0x28FFFFFF),
                 onReturnLeft = onReturnLeft
@@ -520,23 +526,40 @@ private fun IpConfigSubScreen(
 
 @Composable
 private fun WifiSetupSubScreen(
+    controller: SystemSettingsController,
     firstItemFocusRequester: FocusRequester,
     onReturnLeft: () -> Unit
 ) {
     val context = LocalContext.current
     val soundManager = remember { TaloApplication.instance.soundEffectManager }
 
+    var isWifiOn by rememberSaveable { mutableStateOf(controller.isWifiEnabled()) }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically)
     ) {
         item {
+            NetworkSwitchCard(
+                title = "Activer le Wi-Fi",
+                description = "Active ou désactive la carte réseau sans fil du boîtier TV pour basculer vers Ethernet.",
+                checked = isWifiOn,
+                focusRequester = firstItemFocusRequester,
+                onReturnLeft = onReturnLeft,
+                onToggle = { enable ->
+                    isWifiOn = enable
+                    soundManager.playSelectSound()
+                    controller.setWifiEnabled(enable)
+                }
+            )
+        }
+
+        item {
             NetworkActionCard(
                 title = "Sélectionner ou changer de réseau Wi-Fi",
                 description = "Ouvre l'assistant de détection sans fil pour scanner les réseaux Wi-Fi disponibles aux alentours et saisir le mot de passe de sécurité.",
-                badgeText = "Configurer",
+                badgeText = "Scanner",
                 badgeColor = Color(0xFF34C759),
-                focusRequester = firstItemFocusRequester,
                 onReturnLeft = onReturnLeft,
                 onClick = {
                     soundManager.playSelectSound()
@@ -548,7 +571,7 @@ private fun WifiSetupSubScreen(
                         context.startActivity(intent)
                     } catch (_: Exception) {
                         try {
-                            val fallback = Intent(android.provider.Settings.ACTION_WIFI_SETTINGS)
+                            val fallback = Intent(Settings.ACTION_WIFI_SETTINGS)
                             fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             context.startActivity(fallback)
                         } catch (_: Exception) {}
@@ -570,7 +593,7 @@ private fun WifiSetupSubScreen(
 }
 
 // =============================================================================
-// COMPOSANT CARTE HARMONISÉ
+// COMPOSANTS CARTE HARMONISÉS
 // =============================================================================
 
 @Composable
@@ -584,7 +607,7 @@ private fun NetworkActionCard(
     onClick: (() -> Unit)? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
+    var isFocused by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.02f else 1.0f,
@@ -613,6 +636,7 @@ private fun NetworkActionCard(
             .clip(RoundedCornerShape(14.dp))
             .background(bgColor)
             .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(14.dp))
+            .onFocusChanged { isFocused = it.isFocused }
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
@@ -623,10 +647,8 @@ private fun NetworkActionCard(
                         }
                         Key.DirectionRight -> true
                         Key.Enter, Key.NumPadEnter, Key.DirectionCenter -> {
-                            if (onClick != null) {
-                                onClick()
-                                true
-                            } else false
+                            onClick?.invoke()
+                            true
                         }
                         else -> false
                     }
@@ -634,8 +656,7 @@ private fun NetworkActionCard(
             }
             .clickable(
                 interactionSource = interactionSource,
-                indication = null,
-                enabled = onClick != null
+                indication = null
             ) {
                 onClick?.invoke()
             }
@@ -662,17 +683,132 @@ private fun NetworkActionCard(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(badgeColor)
+                    .background(if (isFocused && onClick != null) Color.White else badgeColor)
                     .padding(horizontal = 14.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = badgeText,
-                    color = Color.White,
+                    color = if (isFocused && onClick != null) Color(0xFF0B0C0E) else Color.White,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun NetworkSwitchCard(
+    title: String,
+    description: String,
+    checked: Boolean,
+    focusRequester: FocusRequester? = null,
+    onReturnLeft: () -> Unit,
+    onToggle: (Boolean) -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    var isFocused by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.02f else 1.0f,
+        animationSpec = tween(120),
+        label = "netSwitchCardScale"
+    )
+
+    val bgColor by animateColorAsState(
+        targetValue = if (isFocused) Color(0xFF2C303A) else Color(0x20FFFFFF),
+        animationSpec = tween(120),
+        label = "netSwitchCardBg"
+    )
+
+    val borderColor by animateColorAsState(
+        targetValue = if (isFocused) Color.White else Color(0x14FFFFFF),
+        animationSpec = tween(120),
+        label = "netSwitchCardBorder"
+    )
+
+    val knobOffset by animateDpAsState(
+        targetValue = if (checked) 22.dp else 3.dp,
+        animationSpec = tween(120),
+        label = "knobOffset"
+    )
+
+    val switchBgColor by animateColorAsState(
+        targetValue = if (checked) Color(0xFF34C759) else Color(0x35FFFFFF),
+        animationSpec = tween(120),
+        label = "switchBg"
+    )
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(scale)
+            .clip(RoundedCornerShape(14.dp))
+            .background(bgColor)
+            .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(14.dp))
+            .onFocusChanged { isFocused = it.isFocused }
+            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+            .onPreviewKeyEvent { keyEvent ->
+                if (keyEvent.type == KeyEventType.KeyDown) {
+                    when (keyEvent.key) {
+                        Key.DirectionLeft, Key.Back -> {
+                            onReturnLeft()
+                            true
+                        }
+                        Key.DirectionRight -> true
+                        Key.Enter, Key.NumPadEnter, Key.DirectionCenter -> {
+                            onToggle(!checked)
+                            true
+                        }
+                        else -> false
+                    }
+                } else false
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {
+                onToggle(!checked)
+            }
+            .padding(horizontal = 20.dp, vertical = 14.dp)
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                color = if (isFocused) Color.White else Color(0xFFF2F2F7),
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = description,
+                color = if (isFocused) Color(0xFFD1D1D6) else Color(0x99FFFFFF),
+                fontSize = 12.5.sp,
+                lineHeight = 17.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Box(
+            modifier = Modifier
+                .width(48.dp)
+                .height(28.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(switchBgColor)
+                .padding(vertical = 3.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Box(
+                modifier = Modifier
+                    .offset(x = knobOffset)
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(Color.White)
+            )
         }
     }
 }

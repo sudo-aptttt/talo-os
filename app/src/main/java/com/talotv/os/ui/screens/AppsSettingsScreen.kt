@@ -1,8 +1,8 @@
 package com.talotv.os.ui.screens
 
 import android.content.Intent
-import android.net.Uri
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -27,10 +27,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -40,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -48,6 +47,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
@@ -60,16 +60,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.talotv.os.TaloApplication
-import com.talotv.os.core.apps.InstalledApp
+import com.talotv.os.core.system.SystemSettingsController
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.util.Locale
 
 /**
- * 3 Sous-onglets de la section Applications
+ * 4 Sous-onglets de la section Applications et stockage
  */
 enum class AppsSubTab(val title: String) {
     INSTALLED("Applications installées"),
-    STORE("Obtenir des applications"),
-    PERMISSIONS("Autorisations et vie privée")
+    STORAGE("Gestion du stockage"),
+    PERMISSIONS("Autorisations système"),
+    STORE("Magasin d'applications")
 }
 
 @Composable
@@ -79,7 +82,8 @@ fun AppsSettingsScreen(
 ) {
     val context = LocalContext.current
     val soundManager = remember { TaloApplication.instance.soundEffectManager }
-    val appsManager = remember { TaloApplication.instance.installedAppsManager }
+    val controller = remember { SystemSettingsController(context) }
+    val coroutineScope = rememberCoroutineScope()
 
     var selectedSubTabIndex by rememberSaveable { mutableIntStateOf(0) }
     var isDetailPaneActive by remember { mutableStateOf(false) }
@@ -122,66 +126,40 @@ fun AppsSettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 48.dp, vertical = 20.dp)
+                .padding(horizontal = 64.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // EN-TÊTE
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(Color(0x18FFFFFF))
-                        .clickable { onClose() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Retour",
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
+            // Titre supérieur centré
+            Text(
+                text = "Applications et stockage",
+                color = Color(0xCCFFFFFF),
+                fontSize = 24.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = 20.dp)
+            )
 
-                Spacer(modifier = Modifier.width(16.dp))
-
-                Column {
-                    Text(
-                        text = "Applications",
-                        color = Color.White,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Gestion des applications installées, magasin Google Play et autorisations",
-                        color = Color(0x88FFFFFF),
-                        fontSize = 12.sp
-                    )
-                }
-            }
-
-            // CORPS
+            // Conteneur deux colonnes (Master-Detail)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(28.dp)
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 // COLONNE GAUCHE (Sous-onglets)
-                Column(
+                LazyColumn(
                     modifier = Modifier
-                        .weight(1.0f)
+                        .weight(0.95f)
                         .fillMaxHeight(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    subTabs.forEachIndexed { index, subTab ->
-                        val isSelected = (index == selectedSubTabIndex)
+                    items(subTabs.size) { index ->
+                        val tab = subTabs[index]
+                        val isSelected = selectedSubTabIndex == index
+
                         AppsSubTabItem(
-                            title = subTab.title,
+                            title = tab.title,
                             isSelected = isSelected,
                             isDetailPaneActive = isDetailPaneActive,
                             focusRequester = subTabFocusRequesters[index],
@@ -191,38 +169,47 @@ fun AppsSettingsScreen(
                                     soundManager.playFocusSound()
                                 }
                             },
-                            onEnterDetail = {
-                                selectedSubTabIndex = index
-                                isDetailPaneActive = true
+                            onEnterRight = {
                                 soundManager.playSelectSound()
-                                try {
-                                    rightFirstFocusRequester.requestFocus()
-                                } catch (_: Exception) {}
-                            }
+                                isDetailPaneActive = true
+                                coroutineScope.launch {
+                                    delay(20)
+                                    try {
+                                        rightFirstFocusRequester.requestFocus()
+                                    } catch (_: Exception) {}
+                                }
+                            },
+                            onExit = onClose
                         )
                     }
                 }
 
-                // COLONNE DROITE (Contenu)
+                Spacer(modifier = Modifier.width(36.dp))
+
+                // COLONNE DROITE (Contenu dynamique)
                 Box(
                     modifier = Modifier
-                        .weight(1.8f)
-                        .fillMaxHeight()
+                        .weight(1.35f)
+                        .fillMaxHeight(),
+                    contentAlignment = Alignment.Center
                 ) {
                     when (subTabs[selectedSubTabIndex]) {
                         AppsSubTab.INSTALLED -> InstalledAppsSubScreen(
                             firstItemFocusRequester = rightFirstFocusRequester,
                             onReturnLeft = {
                                 isDetailPaneActive = false
+                                soundManager.playFocusSound()
                                 try {
                                     subTabFocusRequesters.getOrNull(selectedSubTabIndex)?.requestFocus()
                                 } catch (_: Exception) {}
                             }
                         )
-                        AppsSubTab.STORE -> StoreSubScreen(
+                        AppsSubTab.STORAGE -> AppsStorageSubScreen(
+                            controller = controller,
                             firstItemFocusRequester = rightFirstFocusRequester,
                             onReturnLeft = {
                                 isDetailPaneActive = false
+                                soundManager.playFocusSound()
                                 try {
                                     subTabFocusRequesters.getOrNull(selectedSubTabIndex)?.requestFocus()
                                 } catch (_: Exception) {}
@@ -232,6 +219,17 @@ fun AppsSettingsScreen(
                             firstItemFocusRequester = rightFirstFocusRequester,
                             onReturnLeft = {
                                 isDetailPaneActive = false
+                                soundManager.playFocusSound()
+                                try {
+                                    subTabFocusRequesters.getOrNull(selectedSubTabIndex)?.requestFocus()
+                                } catch (_: Exception) {}
+                            }
+                        )
+                        AppsSubTab.STORE -> StoreSubScreen(
+                            firstItemFocusRequester = rightFirstFocusRequester,
+                            onReturnLeft = {
+                                isDetailPaneActive = false
+                                soundManager.playFocusSound()
                                 try {
                                     subTabFocusRequesters.getOrNull(selectedSubTabIndex)?.requestFocus()
                                 } catch (_: Exception) {}
@@ -251,10 +249,11 @@ private fun AppsSubTabItem(
     isDetailPaneActive: Boolean,
     focusRequester: FocusRequester,
     onFocused: () -> Unit,
-    onEnterDetail: () -> Unit
+    onEnterRight: () -> Unit,
+    onExit: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
+    var isFocused by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.02f else 1.0f,
@@ -262,36 +261,44 @@ private fun AppsSubTabItem(
         label = "appsSubTabScale"
     )
 
-    val bgColor by animateColorAsState(
+    val backgroundColor by animateColorAsState(
         targetValue = when {
-            isFocused -> Color(0xFF2C303A)
-            isSelected && isDetailPaneActive -> Color(0x30FFFFFF)
-            isSelected -> Color(0x22FFFFFF)
-            else -> Color(0x10FFFFFF)
+            isFocused -> Color.White
+            isSelected -> Color(0x35FFFFFF)
+            else -> Color(0x18FFFFFF)
         },
         animationSpec = tween(120),
         label = "appsSubTabBg"
     )
 
+    val contentColor by animateColorAsState(
+        targetValue = when {
+            isFocused -> Color(0xFF0B0C0E)
+            isSelected -> Color.White
+            else -> Color(0x90FFFFFF)
+        },
+        animationSpec = tween(120),
+        label = "appsSubTabContent"
+    )
+
+    val chevronColor by animateColorAsState(
+        targetValue = when {
+            isFocused -> Color(0xFF0B0C0E)
+            isSelected -> Color(0x90FFFFFF)
+            else -> Color(0x40FFFFFF)
+        },
+        animationSpec = tween(120),
+        label = "appsSubTabChevron"
+    )
+
     val borderColor by animateColorAsState(
         targetValue = when {
             isFocused -> Color.White
-            isSelected && isDetailPaneActive -> Color(0x50FFFFFF)
-            isSelected -> Color(0x25FFFFFF)
-            else -> Color(0x0CFFFFFF)
+            isSelected -> Color(0x40FFFFFF)
+            else -> Color(0x0EFFFFFF)
         },
         animationSpec = tween(120),
         label = "appsSubTabBorder"
-    )
-
-    val textColor by animateColorAsState(
-        targetValue = when {
-            isFocused -> Color.White
-            isSelected -> Color.White
-            else -> Color(0x99FFFFFF)
-        },
-        animationSpec = tween(120),
-        label = "appsSubTabText"
     )
 
     Row(
@@ -299,14 +306,24 @@ private fun AppsSubTabItem(
             .fillMaxWidth()
             .scale(scale)
             .clip(RoundedCornerShape(12.dp))
-            .background(bgColor)
+            .background(backgroundColor)
             .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(12.dp))
+            .onFocusChanged { focusState ->
+                isFocused = focusState.isFocused
+                if (focusState.isFocused) {
+                    onFocused()
+                }
+            }
             .focusRequester(focusRequester)
             .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
                     when (keyEvent.key) {
                         Key.DirectionRight, Key.Enter, Key.NumPadEnter, Key.DirectionCenter -> {
-                            onEnterDetail()
+                            onEnterRight()
+                            true
+                        }
+                        Key.DirectionLeft, Key.Back -> {
+                            onExit()
                             true
                         }
                         else -> false
@@ -317,7 +334,7 @@ private fun AppsSubTabItem(
                 interactionSource = interactionSource,
                 indication = null
             ) {
-                onEnterDetail()
+                onEnterRight()
             }
             .padding(horizontal = 16.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -325,14 +342,14 @@ private fun AppsSubTabItem(
     ) {
         Text(
             text = title,
-            color = textColor,
+            color = contentColor,
             fontSize = 14.5.sp,
             fontWeight = if (isSelected || isFocused) FontWeight.SemiBold else FontWeight.Medium
         )
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
-            tint = if (isFocused || isSelected) Color.White else Color(0x40FFFFFF),
+            tint = chevronColor,
             modifier = Modifier.size(15.dp)
         )
     }
@@ -359,7 +376,7 @@ private fun InstalledAppsSubScreen(
         item {
             AppsActionCard(
                 title = "Total des applications",
-                description = "${apps.size} applications installées prêtes à l'emploi sur Talo OS. Cliquez sur une application pour l'ouvrir ou gérer son stockage.",
+                description = "${apps.size} applications installées sur Talo OS. Appuyez sur OK pour ouvrir l'application choisie ou afficher ses détails système.",
                 badgeText = "${apps.size} Apps",
                 badgeColor = Color(0x35FFFFFF),
                 focusRequester = firstItemFocusRequester,
@@ -370,7 +387,7 @@ private fun InstalledAppsSubScreen(
         items(apps) { app ->
             AppsActionCard(
                 title = app.name,
-                description = "Identifiant de package : ${app.packageName}\nStatut : Opérationnelle",
+                description = "Identifiant de package : ${app.packageName}\nStatut : Prête à l'emploi",
                 badgeText = "Ouvrir",
                 badgeColor = Color(0xFF34C759),
                 onReturnLeft = onReturnLeft,
@@ -384,44 +401,77 @@ private fun InstalledAppsSubScreen(
 }
 
 // =============================================================================
-// 2. OBTENIR DES APPLICATIONS
+// 2. GESTION DU STOCKAGE
 // =============================================================================
 
 @Composable
-private fun StoreSubScreen(
+private fun AppsStorageSubScreen(
+    controller: SystemSettingsController,
     firstItemFocusRequester: FocusRequester,
     onReturnLeft: () -> Unit
 ) {
     val context = LocalContext.current
     val soundManager = remember { TaloApplication.instance.soundEffectManager }
-    val appsManager = remember { TaloApplication.instance.installedAppsManager }
+
+    var storageData by remember { mutableStateOf(controller.getStorageData()) }
+    val storageFree = storageData.first
+    val storageTotal = storageData.second
+    val storageUsed = (storageTotal - storageFree).coerceAtLeast(0f)
+    val storageProgress = if (storageTotal > 0f) storageUsed / storageTotal else 0.5f
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically)
     ) {
         item {
-            AppsActionCard(
-                title = "Magasin Google Play Store TV",
-                description = "Téléchargez des milliers d'applications de streaming (Netflix, Prime Video, Disney+, Canal+, Max, YouTube), de jeux vidéo et d'utilitaires certifiés Android TV.",
-                badgeText = "Ouvrir le Store",
-                badgeColor = Color(0xFF34C759),
+            AppsGaugeCard(
+                title = "Espace de stockage interne",
+                subtitle = String.format(Locale.US, "%.1f Go utilisés sur %.1f Go (%.0f%%)", storageUsed, storageTotal, storageProgress * 100),
+                progress = storageProgress,
+                fillColor = Color(0xFF34C759),
                 focusRequester = firstItemFocusRequester,
+                onReturnLeft = onReturnLeft
+            )
+        }
+
+        item {
+            AppsActionCard(
+                title = "Nettoyer les fichiers de cache",
+                description = "Supprime les données temporaires, vignettes et caches d'applications pour libérer instantanément de l'espace sur le stockage flash.",
+                badgeText = "Nettoyer",
+                badgeColor = Color(0xFF34C759),
                 onReturnLeft = onReturnLeft,
                 onClick = {
                     soundManager.playSelectSound()
-                    appsManager.launchStore(context)
+                    val freed = controller.clearAllAppCache()
+                    val freedMb = freed / (1024 * 1024)
+                    Toast.makeText(context, "${freedMb} Mo de cache nettoyés avec succès", Toast.LENGTH_SHORT).show()
+                    storageData = controller.getStorageData()
                 }
             )
         }
 
         item {
             AppsActionCard(
-                title = "Mises à jour automatiques des applications",
-                description = "Vos applications se mettent à jour automatiquement en arrière-plan lorsque le téléviseur est en veille pour vous garantir la meilleure sécurité.",
-                badgeText = "Actif",
-                badgeColor = Color(0x28FFFFFF),
-                onReturnLeft = onReturnLeft
+                title = "Gestionnaire de stockage système",
+                description = "Consulter la répartition détaillée des fichiers volumineux, vidéos téléchargées et données d'application dans les réglages système Android.",
+                badgeText = "Ouvrir",
+                badgeColor = Color(0x35FFFFFF),
+                onReturnLeft = onReturnLeft,
+                onClick = {
+                    soundManager.playSelectSound()
+                    try {
+                        val intent = Intent("android.settings.INTERNAL_STORAGE_SETTINGS")
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                    } catch (_: Exception) {
+                        try {
+                            val intent = Intent(Settings.ACTION_SETTINGS)
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(intent)
+                        } catch (_: Exception) {}
+                    }
+                }
             )
         }
     }
@@ -457,6 +507,30 @@ private fun AppPermissionsSubScreen(
                         val intent = Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS)
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         context.startActivity(intent)
+                    } catch (_: Exception) {
+                        try {
+                            val intent = Intent(Settings.ACTION_APPLICATION_SETTINGS)
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(intent)
+                        } catch (_: Exception) {}
+                    }
+                }
+            )
+        }
+
+        item {
+            AppsActionCard(
+                title = "Installation d'applications de sources inconnues",
+                description = "Autoriser les gestionnaires de fichiers et le navigateur à installer des packages APK externes après vérification de sécurité.",
+                badgeText = "Sécurité",
+                badgeColor = Color(0x35FFFFFF),
+                onReturnLeft = onReturnLeft,
+                onClick = {
+                    soundManager.playSelectSound()
+                    try {
+                        val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
                     } catch (_: Exception) {}
                 }
             )
@@ -464,9 +538,9 @@ private fun AppPermissionsSubScreen(
 
         item {
             AppsActionCard(
-                title = "Protection des données Talo OS (Zéro Télémétrie)",
-                description = "Vos habitudes de visionnage restent strictement locales sur la puce de votre téléviseur. Aucune donnée d'audience n'est vendue ni transmise.",
-                badgeText = "Protégé",
+                title = "Protection des données d'application",
+                description = "Le système Talo isole chaque application dans son bac à sable sécurisé pour empêcher les accès croisés non autorisés.",
+                badgeText = "Isolé",
                 badgeColor = Color(0xFF34C759),
                 onReturnLeft = onReturnLeft
             )
@@ -475,7 +549,51 @@ private fun AppPermissionsSubScreen(
 }
 
 // =============================================================================
-// COMPOSANT CARTE HARMONISÉ
+// 4. MAGASIN D'APPLICATIONS
+// =============================================================================
+
+@Composable
+private fun StoreSubScreen(
+    firstItemFocusRequester: FocusRequester,
+    onReturnLeft: () -> Unit
+) {
+    val context = LocalContext.current
+    val soundManager = remember { TaloApplication.instance.soundEffectManager }
+    val appsManager = remember { TaloApplication.instance.installedAppsManager }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically)
+    ) {
+        item {
+            AppsActionCard(
+                title = "Magasin Google Play Store TV",
+                description = "Téléchargez des milliers d'applications de streaming multimédia, de jeux vidéo et d'utilitaires certifiés pour écran TV.",
+                badgeText = "Ouvrir le Store",
+                badgeColor = Color(0xFF34C759),
+                focusRequester = firstItemFocusRequester,
+                onReturnLeft = onReturnLeft,
+                onClick = {
+                    soundManager.playSelectSound()
+                    appsManager.launchStore(context)
+                }
+            )
+        }
+
+        item {
+            AppsActionCard(
+                title = "Mises à jour automatiques des applications",
+                description = "Vos applications se mettent à jour automatiquement en arrière-plan lorsque le téléviseur est en veille pour vous garantir les meilleurs correctifs.",
+                badgeText = "Actif",
+                badgeColor = Color(0x28FFFFFF),
+                onReturnLeft = onReturnLeft
+            )
+        }
+    }
+}
+
+// =============================================================================
+// COMPOSANTS CARTE HARMONISÉS
 // =============================================================================
 
 @Composable
@@ -489,7 +607,7 @@ private fun AppsActionCard(
     onClick: (() -> Unit)? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
+    var isFocused by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.02f else 1.0f,
@@ -518,6 +636,7 @@ private fun AppsActionCard(
             .clip(RoundedCornerShape(14.dp))
             .background(bgColor)
             .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(14.dp))
+            .onFocusChanged { isFocused = it.isFocused }
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
@@ -528,10 +647,8 @@ private fun AppsActionCard(
                         }
                         Key.DirectionRight -> true
                         Key.Enter, Key.NumPadEnter, Key.DirectionCenter -> {
-                            if (onClick != null) {
-                                onClick()
-                                true
-                            } else false
+                            onClick?.invoke()
+                            true
                         }
                         else -> false
                     }
@@ -539,8 +656,7 @@ private fun AppsActionCard(
             }
             .clickable(
                 interactionSource = interactionSource,
-                indication = null,
-                enabled = onClick != null
+                indication = null
             ) {
                 onClick?.invoke()
             }
@@ -567,17 +683,113 @@ private fun AppsActionCard(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(badgeColor)
+                    .background(if (isFocused && onClick != null) Color.White else badgeColor)
                     .padding(horizontal = 14.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = badgeText,
-                    color = Color.White,
+                    color = if (isFocused && onClick != null) Color(0xFF0B0C0E) else Color.White,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun AppsGaugeCard(
+    title: String,
+    subtitle: String,
+    progress: Float,
+    fillColor: Color,
+    focusRequester: FocusRequester? = null,
+    onReturnLeft: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    var isFocused by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.02f else 1.0f,
+        animationSpec = tween(120),
+        label = "appsGaugeScale"
+    )
+
+    val bgColor by animateColorAsState(
+        targetValue = if (isFocused) Color(0xFF2C303A) else Color(0x20FFFFFF),
+        animationSpec = tween(120),
+        label = "appsGaugeBg"
+    )
+
+    val borderColor by animateColorAsState(
+        targetValue = if (isFocused) Color.White else Color(0x14FFFFFF),
+        animationSpec = tween(120),
+        label = "appsGaugeBorder"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(scale)
+            .clip(RoundedCornerShape(14.dp))
+            .background(bgColor)
+            .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(14.dp))
+            .onFocusChanged { isFocused = it.isFocused }
+            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+            .onPreviewKeyEvent { keyEvent ->
+                if (keyEvent.type == KeyEventType.KeyDown) {
+                    when (keyEvent.key) {
+                        Key.DirectionLeft, Key.Back -> {
+                            onReturnLeft()
+                            true
+                        }
+                        Key.DirectionRight -> true
+                        else -> false
+                    }
+                } else false
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {}
+            .padding(horizontal = 20.dp, vertical = 14.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                color = if (isFocused) Color.White else Color(0xFFF2F2F7),
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = subtitle,
+                color = if (isFocused) Color(0xFFE5E5EA) else Color(0x80FFFFFF),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Normal
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(Color(0x28FFFFFF))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(fraction = progress.coerceIn(0.02f, 1f))
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(fillColor)
+            )
         }
     }
 }
