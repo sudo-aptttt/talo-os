@@ -1,0 +1,43 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="240dp"
+    android:viewportWidth="320"
+    android:viewportHeight="240">
+    
+    <!-- Background Dark OLED Canvas (Format 4:3) -->
+    <path
+        android:fillColor="#FF0D0E12"
+        android:pathData="M0,0h320v240h-320z" />
+
+    <!-- Subtle Ambient Glow -->
+    <path
+        android:fillColor="#150071E3"
+        android:pathData="M160,110m-70,0a70,70 0 1,0 140,0a70,70 0 1,0 -140,0" />
+
+    <!-- Talo House Floating Chimney Accent -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M166,48 h9 a4,4 0 0 1 4,4 v11 a4,4 0 0 1 -4,4 h-9 a4,4 0 0 1 -4,-4 v-11 a4,4 0 0 1 4,-4 z" />
+
+    <!-- Talo House Body Silhouette -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M152,60 c1.5,-1.2 3.5,-1.2 5,0 l25,21 c2.5,2 4,5 4,8.5 v20.5 c0,6 -5,11 -11,11 h-44 c-6,0 -11,-5 -11,-11 v-20.5 c0,-3.5 1.5,-6.5 4,-8.5 z" />
+
+    <!-- Inset Living Room Screen Cutout -->
+    <path
+        android:fillColor="#FF0D0E12"
+        android:pathData="M140,90 h26 a5,5 0 0 1 5,5 v12 a5,5 0 0 1 -5,5 h-26 a5,5 0 0 1 -5,-5 v-12 a5,5 0 0 1 5,-5 z" />
+
+    <!-- 'tv' Wordmark -->
+    <!-- Letter 't' -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M142,136 h12 v11 h8 v10 h-8 v20 c0,3 2,5 5,5 h3 v7 h-6 c-10,0 -14,-5 -14,-14 v-18 h-8 v-10 h8 z" />
+
+    <!-- Letter 'v' -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M166,147 h12 l6,30 l6,-30 h12 l-13,43 h-10 z" />
+
+</vector>

@@ -1857,16 +1857,18 @@ fun SettingsScreen(
 
                             SubMenuId.ABOUT_HUB -> {
                                 val info = listOf(
-                                    Pair("Mod\u00E8le", systemController.getDeviceModel()),
-                                    Pair("Fabricant", systemController.getManufacturer()),
+                                    Pair("Modèle", systemController.getDeviceModel()),
                                     Pair("Version Talo OS", versionName),
-                                    Pair("Syst\u00E8me d'exploitation", systemController.getAndroidVersion()),
-                                    Pair("Num\u00E9ro de s\u00E9rie", systemController.getDeviceSerialNumber()),
-                                    Pair("Empreinte mat\u00E9rielle", fingerprint),
+                                    Pair("Créateur / Développeur", "sudo-aptttt"),
+                                    Pair("Appareil cible", "Google TV Streamer 4K"),
+                                    Pair("Licence", "PolyForm Noncommercial 1.0.0"),
+                                    Pair("Système d'exploitation", systemController.getAndroidVersion()),
+                                    Pair("Numéro de série", systemController.getDeviceSerialNumber()),
+                                    Pair("Empreinte matérielle", fingerprint),
                                     Pair("Processeur", systemController.getProcessor()),
-                                    Pair("M\u00E9moire vive (RAM)", systemController.getRamInfo()),
+                                    Pair("Mémoire vive (RAM)", systemController.getRamInfo()),
                                     Pair("Stockage interne", systemController.getStorageInfo()),
-                                    Pair("Temps d'activit\u00E9", systemController.getUptime())
+                                    Pair("Temps d'activité", systemController.getUptime())
                                 )
                                 itemsIndexed(info) { idx, item ->
                                     SettingsRowItem(
@@ -2554,6 +2556,17 @@ fun TaloOsBrandLockup(
             fontFamily = FontFamily.SansSerif,
             fontWeight = FontWeight.Medium,
             letterSpacing = 0.5.sp
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = "Créateur : sudo-aptttt",
+            color = TaloTextSecondary.copy(alpha = 0.75f),
+            fontSize = 12.sp,
+            fontFamily = FontFamily.SansSerif,
+            fontWeight = FontWeight.Normal,
+            letterSpacing = 0.3.sp
         )
     }
 }

@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Talo OS</string>
+    <string name="app_version">0.0.1</string>
+    <string name="app_creator">sudo-aptttt</string>
+    <string name="app_description">Talo OS — Interface d\'accueil épurée sans publicité, allumage en 3 secondes et 4K HDR dédiée au Google TV Streamer 4K.</string>
+    <string name="app_target_device">Google TV Streamer 4K</string>
+    <string name="app_copyright">© 2026 sudo-aptttt • Conçu pour Google TV Streamer 4K</string>
+    <string name="app_license">Licence PolyForm Noncommercial 1.0.0</string>
+
     <string name="accessibility_service_desc">Permet à Talo OS d\'intercepter la touche Accueil pour offrir une expérience sans publicité et un démarrage instantané.</string>
     
     <!-- Onboarding & First Boot -->

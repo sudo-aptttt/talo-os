@@ -97,7 +97,7 @@ object CloudSyncManager {
                 put("pairingCode", pairingCode)
                 put("deviceFingerprint", fingerprint)
                 put("deviceModel", model)
-                put("osVersion", "1.0.0")
+                put("osVersion", "0.0.1")
                 put("nonce", nonce)
                 put("timestamp", timestamp)
             }
@@ -191,7 +191,7 @@ object CloudSyncManager {
             val fingerprint = DeviceFingerprint.getFingerprint(context)
             Log.i(TAG, "Sync device fingerprint: $fingerprint")
             val model = Build.MODEL
-            val osVer = "1.0.0"
+            val osVer = "0.0.1"
             val deviceSecret = TaloSecurityVault.getDeviceSecret(context)
 
             val timestamp = System.currentTimeMillis()
@@ -262,7 +262,7 @@ object CloudSyncManager {
                 val updateObj = json.optJSONObject("update")
                 if (updateObj != null) {
                     val hasUpdate = updateObj.optBoolean("has_update", false)
-                    val latestVer = updateObj.optString("latest_version", "1.0.0")
+                    val latestVer = updateObj.optString("latest_version", "0.0.1")
                     val apkUrl = updateObj.optString("apk_url", "")
                     val sha256 = updateObj.optString("sha256", "")
                     val changelog = updateObj.optString("changelog", "")

@@ -24,7 +24,7 @@
         android:fillColor="#FF0A0A0C"
         android:pathData="M76,88 h26 a5,5 0 0 1 5,5 v12 a5,5 0 0 1 -5,5 h-26 a5,5 0 0 1 -5,-5 v-12 a5,5 0 0 1 5,-5 z" />
 
-    <!-- 'tv' Typography SF Pro Heavy -->
+    <!-- 'tv' Typography Talo Vector Heavy -->
     <!-- Letter 't' -->
     <path
         android:fillColor="#FFFFFFFF"

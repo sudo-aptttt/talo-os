@@ -10,10 +10,13 @@ android {
 
     defaultConfig {
         applicationId = "com.talotv.os"
-        minSdk = 26 // Android 8.0 Oreo (compatible with all modern Fire TV & Google TV sticks)
+        minSdk = 26 // Android 8.0 Oreo (compatible avec Android TV & Google TV Streamer 4K)
         targetSdk = 34
         versionCode = 1
         versionName = "0.0.1"
+
+        buildConfigField("String", "CREATOR", "\"sudo-aptttt\"")
+        buildConfigField("String", "APP_DESCRIPTION", "\"Talo OS — Interface d'accueil épurée sans publicité pour Google TV Streamer 4K\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -45,6 +48,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
