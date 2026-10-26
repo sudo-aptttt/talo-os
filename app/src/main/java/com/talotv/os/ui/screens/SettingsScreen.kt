@@ -97,9 +97,7 @@ fun SettingsScreen(
     }
 
     var selectedIndex by rememberSaveable { mutableIntStateOf(0) }
-    var showHelpHub by remember { mutableStateOf(false) }
-    var showSystemScreen by remember { mutableStateOf(false) }
-    var showRemotesScreen by remember { mutableStateOf(false) }
+    var activeCategory by rememberSaveable { mutableStateOf<SettingsCategory?>(null) }
     var isRestoringFocus by remember { mutableStateOf(false) }
 
     val categories = SettingsCategory.values()
@@ -107,13 +105,13 @@ fun SettingsScreen(
     val listState = rememberLazyListState()
 
     // Interception de la touche Retour vers l'écran d'accueil quand aucun sous-menu n'est ouvert
-    BackHandler(enabled = !showHelpHub && !showSystemScreen && !showRemotesScreen) {
+    BackHandler(enabled = activeCategory == null) {
         onNavigateBack()
     }
 
     // Gestion du focus sur la liste des réglages (à l'ouverture initiale et lors du retour des sous-écrans)
-    LaunchedEffect(showHelpHub, showSystemScreen, showRemotesScreen) {
-        if (!showHelpHub && !showSystemScreen && !showRemotesScreen) {
+    LaunchedEffect(activeCategory) {
+        if (activeCategory == null) {
             try {
                 listState.scrollToItem(selectedIndex)
             } catch (_: Exception) {}
@@ -221,7 +219,7 @@ fun SettingsScreen(
                             title = category.title,
                             focusRequester = focusRequesters[index],
                             onFocused = {
-                                if (!showHelpHub && !showSystemScreen && !showRemotesScreen && !isRestoringFocus) {
+                                if (activeCategory == null && !isRestoringFocus) {
                                     selectedIndex = index
                                     soundManager.playFocusSound()
                                 }
@@ -229,23 +227,7 @@ fun SettingsScreen(
                             onClick = {
                                 selectedIndex = index
                                 soundManager.playSelectSound()
-                                when (category) {
-                                    SettingsCategory.HELP -> {
-                                        // Entre dans le Hub d'Aide TV
-                                        showHelpHub = true
-                                    }
-                                    SettingsCategory.SYSTEM -> {
-                                        // Entre dans les Paramètres Système TV
-                                        showSystemScreen = true
-                                    }
-                                    SettingsCategory.REMOTES -> {
-                                        // Entre dans les Réglages Télécommandes et Appareils TV
-                                        showRemotesScreen = true
-                                    }
-                                    else -> {
-                                        // À développer progressivement
-                                    }
-                                }
+                                activeCategory = category
                             }
                         )
                     }
@@ -253,39 +235,92 @@ fun SettingsScreen(
             }
         }
 
-        // COUCHE DU HUB D'AIDE TV (Superposition fluide)
-        if (showHelpHub) {
-            HelpHubScreen(
-                versionName = versionName,
-                onClose = {
-                    soundManager.playSelectSound()
-                    isRestoringFocus = true
-                    showHelpHub = false
-                }
-            )
-        }
-
-        // COUCHE DES PARAMÈTRES SYSTÈME TV (Superposition fluide)
-        if (showSystemScreen) {
-            SystemSettingsScreen(
-                versionName = versionName,
-                onClose = {
-                    soundManager.playSelectSound()
-                    isRestoringFocus = true
-                    showSystemScreen = false
-                }
-            )
-        }
-
-        // COUCHE DES RÉGLAGES TÉLÉCOMMANDES ET APPAREILS TV (Superposition fluide)
-        if (showRemotesScreen) {
-            RemotesSettingsScreen(
-                onClose = {
-                    soundManager.playSelectSound()
-                    isRestoringFocus = true
-                    showRemotesScreen = false
-                }
-            )
+        // SOUS-ÉCRANS THÉMATIQUES TALO OS (Superposition fluide)
+        when (activeCategory) {
+            SettingsCategory.GENERAL -> {
+                GeneralSettingsScreen(
+                    onClose = {
+                        soundManager.playSelectSound()
+                        isRestoringFocus = true
+                        activeCategory = null
+                    }
+                )
+            }
+            SettingsCategory.USERS -> {
+                UsersSettingsScreen(
+                    onClose = {
+                        soundManager.playSelectSound()
+                        isRestoringFocus = true
+                        activeCategory = null
+                    }
+                )
+            }
+            SettingsCategory.NETWORK -> {
+                NetworkSettingsScreen(
+                    onClose = {
+                        soundManager.playSelectSound()
+                        isRestoringFocus = true
+                        activeCategory = null
+                    }
+                )
+            }
+            SettingsCategory.VIDEO_AUDIO -> {
+                VideoAudioSettingsScreen(
+                    onClose = {
+                        soundManager.playSelectSound()
+                        isRestoringFocus = true
+                        activeCategory = null
+                    }
+                )
+            }
+            SettingsCategory.APPS -> {
+                AppsSettingsScreen(
+                    onClose = {
+                        soundManager.playSelectSound()
+                        isRestoringFocus = true
+                        activeCategory = null
+                    }
+                )
+            }
+            SettingsCategory.NOTIFICATIONS -> {
+                NotificationsSettingsScreen(
+                    onClose = {
+                        soundManager.playSelectSound()
+                        isRestoringFocus = true
+                        activeCategory = null
+                    }
+                )
+            }
+            SettingsCategory.REMOTES -> {
+                RemotesSettingsScreen(
+                    onClose = {
+                        soundManager.playSelectSound()
+                        isRestoringFocus = true
+                        activeCategory = null
+                    }
+                )
+            }
+            SettingsCategory.SYSTEM -> {
+                SystemSettingsScreen(
+                    versionName = versionName,
+                    onClose = {
+                        soundManager.playSelectSound()
+                        isRestoringFocus = true
+                        activeCategory = null
+                    }
+                )
+            }
+            SettingsCategory.HELP -> {
+                HelpHubScreen(
+                    versionName = versionName,
+                    onClose = {
+                        soundManager.playSelectSound()
+                        isRestoringFocus = true
+                        activeCategory = null
+                    }
+                )
+            }
+            null -> { /* Aucun sous-menu actif */ }
         }
     }
 }
