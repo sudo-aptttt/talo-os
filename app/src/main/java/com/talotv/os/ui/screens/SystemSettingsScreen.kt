@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
@@ -92,7 +93,14 @@ fun SystemSettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
+    val activity = remember(context) {
+        var ctx = context
+        while (ctx is android.content.ContextWrapper) {
+            if (ctx is Activity) break
+            ctx = ctx.baseContext
+        }
+        ctx as? Activity
+    }
     val soundManager = remember { TaloApplication.instance.soundEffectManager }
     val systemController = remember { SystemSettingsController(context) }
     val coroutineScope = rememberCoroutineScope()
@@ -133,6 +141,8 @@ fun SystemSettingsScreen(
         } catch (_: Exception) {}
     }
 
+    val isAnyDialogOpen = showResetTaloDialog || showFactoryResetDialog
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -149,7 +159,8 @@ fun SystemSettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 64.dp, vertical = 24.dp),
+                .padding(horizontal = 64.dp, vertical = 24.dp)
+                .focusProperties { canFocus = !isAnyDialogOpen },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Titre supérieur centré
@@ -546,7 +557,7 @@ private fun TaloUpdateSubScreen(
                 title = "Recherche de mise à jour Talo OS",
                 description = statusText ?: "Recherche auprès du dépôt officiel GitHub...",
                 badgeText = if (isChecking) "Recherche..." else if (updateAvailable) "Mettre à jour" else "Vérifier",
-                badgeColor = if (updateAvailable) Color(0xFF34C759) else Color(0xFF0071E3),
+                badgeColor = if (updateAvailable) Color(0xFF34C759) else Color(0x35FFFFFF),
                 focusRequester = firstItemFocusRequester,
                 onReturnLeft = onReturnLeft,
                 onClick = {
@@ -619,7 +630,7 @@ private fun AndroidUpdateSubScreen(
                 title = "Mise à jour système Android TV",
                 description = "Ouvre l'utilitaire natif de Google TV / Android TV pour rechercher et installer les correctifs OTA du fabricant.",
                 badgeText = "Rechercher",
-                badgeColor = Color(0xFF0071E3),
+                badgeColor = Color(0x35FFFFFF),
                 focusRequester = firstItemFocusRequester,
                 onReturnLeft = onReturnLeft,
                 onClick = {
@@ -680,7 +691,7 @@ private fun OptimizationSubScreen(
                 description = ramFeedback
                     ?: "Ferme les processus d'arrière-plan inactifs et compacte la mémoire vive pour fluidifier l'expérience TV.",
                 badgeText = "Optimiser",
-                badgeColor = Color(0xFF0071E3),
+                badgeColor = Color(0x35FFFFFF),
                 focusRequester = firstItemFocusRequester,
                 onReturnLeft = onReturnLeft,
                 onClick = {
@@ -751,7 +762,7 @@ private fun AdvancedSubScreen(
                 title = "Redémarrer Talo OS",
                 description = "Relance l'interface Talo OS et réinitialise tous les services actifs sans éteindre l'appareil.",
                 badgeText = "Redémarrer",
-                badgeColor = Color(0xFF0071E3),
+                badgeColor = Color(0x35FFFFFF),
                 focusRequester = firstItemFocusRequester,
                 onReturnLeft = onReturnLeft,
                 onClick = {
@@ -1018,16 +1029,18 @@ private fun ConfirmationOverlayDialog(
     val confirmFocusRequester = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
-        delay(60)
-        try {
-            cancelFocusRequester.requestFocus()
-        } catch (_: Exception) {}
+        repeat(4) {
+            delay(25)
+            try {
+                cancelFocusRequester.requestFocus()
+            } catch (_: Exception) {}
+        }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xBB000000))
+            .background(Color(0xD9000000))
             .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
                 onDismiss()
             },
@@ -1035,11 +1048,12 @@ private fun ConfirmationOverlayDialog(
     ) {
         Column(
             modifier = Modifier
-                .width(440.dp)
+                .width(460.dp)
                 .clip(RoundedCornerShape(24.dp))
                 .background(Color(0xFF1E2127))
                 .border(BorderStroke(1.dp, Color(0x28FFFFFF)), RoundedCornerShape(24.dp))
-                .padding(24.dp),
+                .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {} // Empêche la fermeture au clic sur la boîte
+                .padding(26.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -1056,11 +1070,11 @@ private fun ConfirmationOverlayDialog(
                 text = message,
                 color = Color(0xB3FFFFFF),
                 fontSize = 13.5.sp,
-                lineHeight = 18.sp,
+                lineHeight = 19.sp,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(26.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1072,6 +1086,11 @@ private fun ConfirmationOverlayDialog(
                     isPrimary = false,
                     isDestructive = false,
                     focusRequester = cancelFocusRequester,
+                    onMoveRight = {
+                        try { confirmFocusRequester.requestFocus() } catch (_: Exception) {}
+                    },
+                    onMoveLeft = {},
+                    onDismiss = onDismiss,
                     onClick = onDismiss
                 )
 
@@ -1081,6 +1100,11 @@ private fun ConfirmationOverlayDialog(
                     isPrimary = true,
                     isDestructive = isDestructive,
                     focusRequester = confirmFocusRequester,
+                    onMoveRight = {},
+                    onMoveLeft = {
+                        try { cancelFocusRequester.requestFocus() } catch (_: Exception) {}
+                    },
+                    onDismiss = onDismiss,
                     onClick = onConfirm
                 )
             }
@@ -1094,6 +1118,9 @@ private fun RowScope.DialogActionButton(
     isPrimary: Boolean,
     isDestructive: Boolean,
     focusRequester: FocusRequester,
+    onMoveRight: () -> Unit,
+    onMoveLeft: () -> Unit,
+    onDismiss: () -> Unit,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -1105,18 +1132,43 @@ private fun RowScope.DialogActionButton(
         label = "dialogBtnScale"
     )
 
-    val bgColor = when {
-        isFocused -> Color.White
-        isDestructive && isPrimary -> Color(0x40FF453A)
-        isPrimary -> Color(0xFF0071E3)
-        else -> Color(0x20FFFFFF)
-    }
+    // DA Talo OS : Zéro bleu flashy ! Fond blanc ou accentué chaleureux
+    val bgColor by animateColorAsState(
+        targetValue = when {
+            isFocused && !isPrimary -> Color.White
+            isFocused && isDestructive -> Color(0xFFFF453A)
+            isFocused && !isDestructive -> Color(0xFFFF9F0A)
+            !isPrimary -> Color(0x24FFFFFF)
+            isDestructive -> Color(0x28FF453A)
+            else -> Color(0x28FF9F0A)
+        },
+        animationSpec = tween(100),
+        label = "dialogBtnBg"
+    )
 
-    val textColor = when {
-        isFocused -> Color(0xFF0B0C0E)
-        isDestructive && isPrimary -> Color(0xFFFF453A)
-        else -> Color.White
-    }
+    val textColor by animateColorAsState(
+        targetValue = when {
+            isFocused && !isPrimary -> Color(0xFF0B0C0E)
+            isFocused && isDestructive -> Color.White
+            isFocused && !isDestructive -> Color(0xFF0B0C0E)
+            !isPrimary -> Color(0xCCFFFFFF)
+            isDestructive -> Color(0xFFFF453A)
+            else -> Color(0xFFFF9F0A)
+        },
+        animationSpec = tween(100),
+        label = "dialogBtnText"
+    )
+
+    val borderColor by animateColorAsState(
+        targetValue = when {
+            isFocused -> Color.White
+            !isPrimary -> Color(0x18FFFFFF)
+            isDestructive -> Color(0x50FF453A)
+            else -> Color(0x50FF9F0A)
+        },
+        animationSpec = tween(100),
+        label = "dialogBtnBorder"
+    )
 
     Box(
         modifier = Modifier
@@ -1126,13 +1178,29 @@ private fun RowScope.DialogActionButton(
             .clip(RoundedCornerShape(12.dp))
             .background(bgColor)
             .border(
-                BorderStroke(1.dp, if (isFocused) Color.White else Color(0x18FFFFFF)),
+                BorderStroke(if (isFocused) 2.dp else 1.dp, borderColor),
                 RoundedCornerShape(12.dp)
             )
             .focusRequester(focusRequester)
             .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
                     when (keyEvent.key) {
+                        Key.DirectionRight -> {
+                            onMoveRight()
+                            true
+                        }
+                        Key.DirectionLeft -> {
+                            onMoveLeft()
+                            true
+                        }
+                        Key.DirectionUp, Key.DirectionDown -> {
+                            // Bloque formellement toute fuite de curseur vers le fond
+                            true
+                        }
+                        Key.Back -> {
+                            onDismiss()
+                            true
+                        }
                         Key.Enter, Key.NumPadEnter, Key.DirectionCenter -> {
                             onClick()
                             true

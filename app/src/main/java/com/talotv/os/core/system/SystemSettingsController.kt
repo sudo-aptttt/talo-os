@@ -614,8 +614,27 @@ class SystemSettingsController(private val context: Context) {
 
     fun resetTaloSettings(): Boolean {
         return try {
-            prefs.edit().clear().commit()
-            context.getSharedPreferences("talo_sidebar_prefs", Context.MODE_PRIVATE).edit().clear().commit()
+            val prefFiles = listOf(
+                "talo_system_settings",
+                "talo_sidebar_prefs",
+                "talo_app_usage_counter",
+                "talo_audio_prefs",
+                "talo_profile_prefs",
+                "talo_user_profiles_prefs"
+            )
+            for (name in prefFiles) {
+                try {
+                    context.getSharedPreferences(name, Context.MODE_PRIVATE).edit().clear().commit()
+                } catch (_: Exception) {}
+            }
+            try {
+                val sharedPrefsDir = File(context.applicationInfo.dataDir, "shared_prefs")
+                if (sharedPrefsDir.exists() && sharedPrefsDir.isDirectory) {
+                    sharedPrefsDir.listFiles()?.forEach { file ->
+                        file.delete()
+                    }
+                }
+            } catch (_: Exception) {}
             true
         } catch (e: Exception) {
             false
@@ -641,27 +660,43 @@ class SystemSettingsController(private val context: Context) {
         }
     }
 
-    fun triggerReboot(activity: Activity?) {
+    fun restartTaloOS(activity: Activity?) {
+        val act = activity ?: context.findActivity()
         try {
-            Runtime.getRuntime().exec("reboot")
+            val intent = Intent(context, com.talotv.os.MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            }
+            context.startActivity(intent)
+            act?.finishAffinity()
         } catch (e: Exception) {
             try {
-                activity?.let {
-                    val intent = it.intent
-                    it.finish()
-                    it.startActivity(intent)
-                }
+                act?.recreate()
             } catch (_: Exception) {
                 Toast.makeText(context, "Redémarrage de Talo OS...", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
+    private fun Context.findActivity(): Activity? {
+        var ctx = this
+        while (ctx is android.content.ContextWrapper) {
+            if (ctx is Activity) return ctx
+            ctx = ctx.baseContext
+        }
+        return null
+    }
+
+    fun triggerReboot(activity: Activity?) {
+        restartTaloOS(activity)
+    }
+
     fun triggerFactoryReset() {
         val intents = listOf(
-            Intent("android.settings.BACKUP_AND_RESET_SETTINGS"),
-            Intent("android.intent.action.FACTORY_RESET"),
-            Intent(Settings.ACTION_PRIVACY_SETTINGS)
+            Intent().setComponent(android.content.ComponentName("com.android.tv.settings", "com.android.tv.settings.device.storage.ResetActivity")),
+            Intent().setComponent(android.content.ComponentName("com.android.tv.settings", "com.android.tv.settings.about.AboutActivity")),
+            Intent("android.settings.INTERNAL_STORAGE_SETTINGS"),
+            Intent(Settings.ACTION_DEVICE_INFO_SETTINGS),
+            Intent(Settings.ACTION_SETTINGS)
         )
         for (intent in intents) {
             try {
@@ -670,7 +705,7 @@ class SystemSettingsController(private val context: Context) {
                 return
             } catch (_: Exception) {}
         }
-        Toast.makeText(context, "Ouverture de la réinitialisation système...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "Ouverture des paramètres système...", Toast.LENGTH_SHORT).show()
     }
 
     fun openWikiWeb() {
