@@ -529,12 +529,13 @@ class SystemSettingsController(private val context: Context) {
     }
 
     fun openWikiWeb() {
+        val wikiUrl = "https://github.com/sudo-aptttt/talo-tv/wiki"
         try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://talo-tv.studio.ynh.fr/wiki/"))
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(wikiUrl))
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(intent)
         } catch (e: Exception) {
-            Toast.makeText(context, "Wiki : https://talo-tv.studio.ynh.fr/wiki/", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Wiki GitHub : $wikiUrl", Toast.LENGTH_LONG).show()
         }
     }
 }

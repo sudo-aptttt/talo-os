@@ -1,5 +1,9 @@
 package com.talotv.os.ui.screens
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -43,6 +47,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -198,12 +207,35 @@ fun SettingsScreen(
                             },
                             onClick = {
                                 soundManager.playSelectSound()
+                                when (category) {
+                                    SettingsCategory.HELP -> {
+                                        openGitHubWiki(context)
+                                    }
+                                    else -> {
+                                        // À développer progressivement
+                                    }
+                                }
                             }
                         )
                     }
                 }
             }
         }
+    }
+}
+
+/**
+ * Redirection directe vers le Wiki officiel GitHub de Talo TV
+ */
+private fun openGitHubWiki(context: Context) {
+    val wikiUrl = "https://github.com/sudo-aptttt/talo-tv/wiki"
+    try {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(wikiUrl)).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+    } catch (_: Exception) {
+        Toast.makeText(context, "Wiki GitHub : $wikiUrl", Toast.LENGTH_LONG).show()
     }
 }
 
@@ -268,6 +300,17 @@ private fun SettingsMenuItem(
             .focusRequester(focusRequester)
             .focusable(interactionSource = interactionSource)
             .clickable { onClick() }
+            .onKeyEvent { keyEvent ->
+                if (keyEvent.type == KeyEventType.KeyDown) {
+                    when (keyEvent.key) {
+                        Key.DirectionRight, Key.Enter, Key.NumPadEnter, Key.DirectionCenter -> {
+                            onClick()
+                            true
+                        }
+                        else -> false
+                    }
+                } else false
+            }
             .padding(horizontal = 20.dp)
     ) {
         Text(
