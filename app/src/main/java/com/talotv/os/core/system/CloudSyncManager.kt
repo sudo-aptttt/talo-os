@@ -196,8 +196,23 @@ object CloudSyncManager {
 
             val timestamp = System.currentTimeMillis()
             val nonce = TaloSecurityVault.generateNonce()
+
+            val payload = JSONObject().apply {
+                put("fingerprint", fingerprint)
+                put("osVersion", osVer)
+                put("model", model)
+                put("isLocked", _isDeviceLocked.value)
+            }
+            val payloadString = payload.toString()
+
+            val bodyHash = try {
+                val md = java.security.MessageDigest.getInstance("SHA-256")
+                md.digest(payloadString.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+            } catch (e: Exception) { "" }
+
+            val signTarget = if (bodyHash.isNotEmpty()) "$timestamp.$nonce.$fingerprint.$bodyHash" else "$timestamp.$nonce.$fingerprint"
             val signature = if (deviceSecret.isNotEmpty()) {
-                TaloSecurityVault.signPayload(deviceSecret, "$timestamp.$nonce.$fingerprint")
+                TaloSecurityVault.signPayload(deviceSecret, signTarget)
             } else ""
 
             val url = URL("$API_BASE/sync.php?action=heartbeat")
@@ -214,14 +229,7 @@ object CloudSyncManager {
                 readTimeout = 7000
             }
 
-            val payload = JSONObject().apply {
-                put("fingerprint", fingerprint)
-                put("osVersion", osVer)
-                put("model", model)
-                put("isLocked", _isDeviceLocked.value)
-            }
-
-            OutputStreamWriter(conn.outputStream).use { it.write(payload.toString()) }
+            OutputStreamWriter(conn.outputStream).use { it.write(payloadString) }
 
             if (conn.responseCode in 200..299) {
                 val responseText = conn.inputStream.bufferedReader().use { it.readText() }
