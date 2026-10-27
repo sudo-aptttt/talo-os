@@ -1,4 +1,4 @@
-﻿package com.talotv.os.ui.components
+package com.talotv.os.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
@@ -304,10 +304,10 @@ fun TvSidebarDrawer(
             Spacer(modifier = Modifier.height(6.dp))
 
             // ============================================================
-            // 5. EN BAS DU MENU : LA PAGE RÉGLAGES
+            // 5. EN BAS DU MENU : LA PAGE PARAMÈTRES
             // ============================================================
             SidebarNavItem(
-                title = "Réglages",
+                title = "Paramètres",
                 iconType = DockIconType.SETTINGS,
                 isSelected = currentDestination == NavDestination.SETTINGS,
                 onDismiss = onDismiss,

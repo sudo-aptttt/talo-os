@@ -151,7 +151,7 @@ fun SettingsScreen(
         ) {
             // Titre supérieur centré
             Text(
-                text = "Réglages",
+                text = "Paramètres",
                 color = Color(0xCCFFFFFF),
                 fontSize = 24.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -577,7 +577,7 @@ private fun HelpHubScreen(
                     item {
                         HelpCardItem(
                             title = "Raccourcis Télécommande TV",
-                            description = "• Flèche Droite ou OK : Entrer dans une section ou valider un réglage\n• Flèche Gauche ou Touche Retour : Revenir en arrière\n• Touche Accueil (Home) : Revenir au tableau de bord",
+                            description = "• Flèche Droite ou OK : Entrer dans une section ou valider un paramètre\n• Flèche Gauche ou Touche Retour : Revenir en arrière\n• Touche Accueil (Home) : Revenir au tableau de bord",
                             focusRequester = cardFocusRequesters[0],
                             onFocused = { soundManager.playFocusSound() },
                             onExit = onClose
@@ -607,7 +607,7 @@ private fun HelpHubScreen(
                     item {
                         HelpCardItem(
                             title = "Assistance & Maintenance",
-                            description = "Redémarrez le boîtier ou libérez la mémoire vive depuis Réglages > Système. En cas de dysfonctionnement, consultez le wiki GitHub.",
+                            description = "Redémarrez le boîtier ou libérez la mémoire vive depuis Paramètres > Système. En cas de dysfonctionnement, consultez le wiki GitHub.",
                             focusRequester = cardFocusRequesters[3],
                             onFocused = { soundManager.playFocusSound() },
                             onExit = onClose

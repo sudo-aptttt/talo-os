@@ -7,7 +7,7 @@ object ContentRepository {
         appKey = "talo-home",
         title = "Talo TV",
         badge = "Système d'Exploitation TV • 4K HDR",
-        tagline = "Bienvenue sur Talo OS. Accédez à vos applications, divertissements et réglages en toute fluidité.",
+        tagline = "Bienvenue sur Talo OS. Accédez à vos applications, divertissements et paramètres en toute fluidité.",
         category = "Accueil Salon",
         year = "2026",
         rating = "Tous publics",
@@ -280,7 +280,7 @@ object ContentRepository {
         ),
         DockAppItem(
             id = "app-settings",
-            name = "Réglages",
+            name = "Paramètres",
             category = "Système & Préférences",
             packageName = "com.talotv.settings",
             iconType = DockIconType.SETTINGS,
@@ -288,14 +288,14 @@ object ContentRepository {
             spotlight = MediaSpotlight(
                 id = "spot-settings",
                 appKey = "app-settings",
-                title = "Réglages",
+                title = "Paramètres",
                 badge = "Système • Réseau • Affichage & Son • Profils",
                 tagline = "Configurez votre téléviseur, connectez vos périphériques Bluetooth et personnalisez votre expérience Talo OS.",
                 category = "Préférences Système",
                 year = "2026",
                 rating = "Système",
                 gradientColors = listOf(0xFF3A3D45, 0xFF23252A, 0xFF101114),
-                logoText = "Réglages"
+                logoText = "Paramètres"
             )
         )
     )

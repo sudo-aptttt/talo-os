@@ -845,7 +845,7 @@ private fun HdmiCecSubScreen(
     ) {
         item {
             RemotesActionCard(
-                title = "Réglages HDMI-CEC & Affichage TV",
+                title = "Paramètres HDMI-CEC & Affichage TV",
                 description = "Ouvre le panneau système officiel Google TV pour activer ou désactiver le contrôle HDMI (CEC), l'allumage One Touch Play, la mise en veille synchronisée et le contrôle du volume eARC.",
                 badgeText = "Configurer",
                 badgeColor = Color(0xFF34C759),

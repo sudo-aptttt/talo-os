@@ -288,18 +288,18 @@ fun SystemSettingsScreen(
             }
         }
 
-        // Dialogue de confirmation : Réinitialiser réglages Talo OS
+        // Dialogue de confirmation : Réinitialiser paramètres Talo OS
         if (showResetTaloDialog) {
             ConfirmationOverlayDialog(
-                title = "Réinitialiser les réglages Talo OS",
-                message = "Voulez-vous rétablir les réglages d'origine de Talo OS ? Vos applications et comptes resteront intacts.",
+                title = "Réinitialiser les paramètres Talo OS",
+                message = "Voulez-vous rétablir les paramètres d'origine de Talo OS ? Vos applications et comptes resteront intacts.",
                 confirmText = "Réinitialiser",
                 isDestructive = false,
                 onConfirm = {
                     showResetTaloDialog = false
                     val success = systemController.resetTaloSettings()
                     if (success) {
-                        Toast.makeText(context, "Réglages Talo OS réinitialisés", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Paramètres Talo OS réinitialisés", Toast.LENGTH_SHORT).show()
                         systemController.triggerReboot(activity)
                     }
                 },
@@ -783,7 +783,7 @@ private fun AdvancedSubScreen(
         item {
             SystemActionCard(
                 title = "Options pour les développeurs",
-                description = "Accéder directement aux réglages avancés d'Android TV (débogage USB/Réseau, échelles d'animation, etc.).",
+                description = "Accéder directement aux paramètres avancés d'Android TV (débogage USB/Réseau, échelles d'animation, etc.).",
                 badgeText = "Ouvrir",
                 onReturnLeft = onReturnLeft,
                 onClick = {
@@ -795,8 +795,8 @@ private fun AdvancedSubScreen(
 
         item {
             SystemActionCard(
-                title = "Réinitialiser les réglages Talo OS",
-                description = "Rétablit les réglages par défaut de Talo OS (fonds d'écran, barres, sons). Vos applications restent installées.",
+                title = "Réinitialiser les paramètres Talo OS",
+                description = "Rétablit les paramètres par défaut de Talo OS (fonds d'écran, barres, sons). Vos applications restent installées.",
                 badgeText = "Réinitialiser",
                 badgeColor = Color(0xFFFF9F0A),
                 focusRequester = resetTaloFocusRequester,

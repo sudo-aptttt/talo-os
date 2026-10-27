@@ -454,7 +454,7 @@ private fun AppsStorageSubScreen(
         item {
             AppsActionCard(
                 title = "Gestionnaire de stockage système",
-                description = "Consulter la répartition détaillée des fichiers volumineux, vidéos téléchargées et données d'application dans les réglages système Android.",
+                description = "Consulter la répartition détaillée des fichiers volumineux, vidéos téléchargées et données d'application dans les paramètres système Android.",
                 badgeText = "Ouvrir",
                 badgeColor = Color(0x35FFFFFF),
                 onReturnLeft = onReturnLeft,

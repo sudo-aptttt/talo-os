@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -49,10 +50,17 @@ import com.talotv.os.ui.components.ProfileSwitcherDialog
 import com.talotv.os.ui.components.TopShelfSpotlight
 import com.talotv.os.ui.components.UpwardChevronIndicator
 import com.talotv.os.ui.components.TvSidebarDrawer
+import com.talotv.os.ui.components.SettingsSidePanel
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 
 @Composable
 fun HomeScreen(
-    onNavigateToSettings: () -> Unit,
+    isSettingsOpen: Boolean = false,
+    onOpenSettings: () -> Unit = {},
+    onCloseSettings: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = onOpenSettings,
     onNavigateToSearch: () -> Unit,
     onNavigateToStore: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -97,7 +105,9 @@ fun HomeScreen(
     }
 
     val dockFirstFocusRequester = remember { FocusRequester() }
+    val dockSettingsFocusRequester = remember { FocusRequester() }
     val profileFocusRequester = remember { FocusRequester() }
+    var openedFromDockSettings by remember { mutableStateOf(false) }
 
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
@@ -126,8 +136,24 @@ fun HomeScreen(
         }
     }
 
+    // Focus restoration when settings side-panel closes: return to caller or dock first item
+    LaunchedEffect(isSettingsOpen) {
+        if (!isSettingsOpen) {
+            delay(100)
+            try {
+                if (openedFromDockSettings) {
+                    dockSettingsFocusRequester.requestFocus()
+                    openedFromDockSettings = false
+                } else {
+                    dockFirstFocusRequester.requestFocus()
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
     // Intercept Back button: closes dialogs or toggles sidebar
-    BackHandler(enabled = true) {
+    // Disabled while isSettingsOpen is true so SettingsSidePanel's BackHandler handles sub-level/close exclusively
+    BackHandler(enabled = !isSettingsOpen) {
         if (isProfileSwitcherOpen) {
             isProfileSwitcherOpen = false
         } else if (isSidebarOpen) {
@@ -142,10 +168,11 @@ fun HomeScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        // Main Scrollable TV Experience
+        // Main Scrollable TV Experience (focus disabled behind settings overlay)
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .focusProperties { canFocus = !isSettingsOpen }
                 .verticalScroll(scrollState)
         ) {
             // 1. Top Shelf Showcase (Hero Section with Dynamic Spotlight Backdrop full screen)
@@ -174,6 +201,7 @@ fun HomeScreen(
                     FloatingAppDock(
                         apps = dockApps,
                         firstItemFocusRequester = dockFirstFocusRequester,
+                        settingsItemFocusRequester = dockSettingsFocusRequester,
                         onNavigateLeftFromFirst = { isSidebarOpen = true },
                         onNavigateUpToProfile = {
                             try { profileFocusRequester.requestFocus() } catch (e: Exception) { }
@@ -188,7 +216,8 @@ fun HomeScreen(
                             if (app.id == "app-store" || app.packageName == "com.android.vending") {
                                 onNavigateToStore()
                             } else if (app.id == "dock-settings" || app.id == "app-settings" || app.packageName == "com.talotv.settings") {
-                                onNavigateToSettings()
+                                openedFromDockSettings = true
+                                onOpenSettings()
                             } else {
                                 launchAppPackage(app.packageName, app.name)
                             }
@@ -208,7 +237,8 @@ fun HomeScreen(
                         if (app.id == "app-store" || app.isStore || app.packageName == "com.android.vending") {
                             onNavigateToStore()
                         } else if (app.id == "app-settings" || app.isSettings || app.packageName == "com.talotv.settings") {
-                            onNavigateToSettings()
+                            openedFromDockSettings = false
+                            onOpenSettings()
                         } else {
                             launchAppPackage(app.packageName, app.name)
                         }
@@ -233,6 +263,7 @@ fun HomeScreen(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = 28.dp, end = 44.dp)
+                .focusProperties { canFocus = !isSettingsOpen }
         )
 
         // ============================================================
@@ -251,7 +282,7 @@ fun HomeScreen(
                     isSidebarOpen = false
                     when (dest) {
                         NavDestination.SEARCH -> onNavigateToSearch()
-                        NavDestination.SETTINGS -> onNavigateToSettings()
+                        NavDestination.SETTINGS -> onOpenSettings()
                         NavDestination.HOME -> { /* already on home */ }
                         NavDestination.CINEMA -> {
                             activeSpotlight = dockApps.getOrNull(0)?.spotlight ?: ContentRepository.fallbackSpotlight
@@ -269,7 +300,7 @@ fun HomeScreen(
                     if (app.id == "app-store" || app.packageName == "com.android.vending") {
                         onNavigateToStore()
                     } else if (app.id == "dock-settings" || app.id == "app-settings" || app.packageName == "com.talotv.settings") {
-                        onNavigateToSettings()
+                        onOpenSettings()
                     } else {
                         launchAppPackage(app.packageName, app.name)
                     }
@@ -303,9 +334,54 @@ fun HomeScreen(
                 },
                 onAddProfileClick = {
                     isProfileSwitcherOpen = false
-                    onNavigateToSettings()
+                    onOpenSettings()
                 },
                 onDismiss = { isProfileSwitcherOpen = false }
+            )
+        }
+
+        // ============================================================
+        // OVERLAY 3: DIMMING SCRIM FOR SETTINGS SIDE-PANEL
+        // ============================================================
+        AnimatedVisibility(
+            visible = isSettingsOpen,
+            enter = fadeIn(animationSpec = tween(220)),
+            exit = fadeOut(animationSpec = tween(180))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.58f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        onCloseSettings()
+                    }
+            )
+        }
+
+        // ============================================================
+        // OVERLAY 4: SETTINGS SIDE-PANEL (VOLET LATÉRAL DROIT ~35% WIDTH)
+        // ============================================================
+        AnimatedVisibility(
+            visible = isSettingsOpen,
+            enter = slideInHorizontally(
+                initialOffsetX = { it },
+                animationSpec = tween(260)
+            ) + fadeIn(animationSpec = tween(220)),
+            exit = slideOutHorizontally(
+                targetOffsetX = { it },
+                animationSpec = tween(220)
+            ) + fadeOut(animationSpec = tween(180)),
+            modifier = Modifier.align(Alignment.CenterEnd)
+        ) {
+            SettingsSidePanel(
+                onClose = onCloseSettings,
+                onOpenProfileSwitcher = {
+                    onCloseSettings()
+                    isProfileSwitcherOpen = true
+                }
             )
         }
     }

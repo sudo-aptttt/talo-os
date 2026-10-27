@@ -200,7 +200,7 @@ fun OOBESetupScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Synchronisez vos profils, réglages et personnalisations en direct.",
+                        text = "Synchronisez vos profils, paramètres et personnalisations en direct.",
                         color = Color(0xFFA1A1A6),
                         fontSize = 16.sp
                     )

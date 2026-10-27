@@ -513,7 +513,7 @@ private fun AudioSubScreen(
 
         item {
             VideoAudioActionCard(
-                title = "Égaliseur et réglages audio système",
+                title = "Égaliseur et paramètres audio système",
                 description = "Ouvre les paramètres avancés de la sortie audio, du volume absolu et de la synchronisation labiale (A/V sync).",
                 badgeText = "Paramètres",
                 badgeColor = Color(0x35FFFFFF),

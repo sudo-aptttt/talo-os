@@ -115,7 +115,7 @@ class InstalledAppsManager(private val context: Context) {
             )
         )
 
-        // 2. All other REAL installed apps on this TV system (excluding Android TV settings to keep only Talo Réglages)
+        // 2. All other REAL installed apps on this TV system (excluding Android TV settings to keep only Talo Paramètres)
         combinedResolves
             .filter { 
                 it.activityInfo.packageName != "com.android.vending" &&
@@ -156,7 +156,7 @@ class InstalledAppsManager(private val context: Context) {
         list.add(
             InstalledApp(
                 id = "app-settings",
-                name = "Réglages",
+                name = "Paramètres",
                 packageName = "com.talotv.settings",
                 className = "",
                 iconBitmap = null,

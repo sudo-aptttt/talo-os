@@ -50,9 +50,13 @@ enum class ScreenState {
     SEARCH
 }
 
+// Android TV Leanback key code for physical TV settings buttons (remote control)
+private const val KEYCODE_TV_SETTINGS = 289
+
 class MainActivity : ComponentActivity() {
 
     private val currentScreen = mutableStateOf(ScreenState.OOBE)
+    private val isSettingsPanelOpen = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,10 +71,10 @@ class MainActivity : ComponentActivity() {
         checkAndRequestRequiredPermissions()
 
         val isCalibrated = (application as TaloApplication).profileManager.isCalibrated()
-        currentScreen.value = when {
-            intent?.getStringExtra("screen") == "settings" -> ScreenState.SETTINGS
-            isCalibrated -> ScreenState.HOME
-            else -> ScreenState.OOBE
+        val requestedSettings = intent?.getStringExtra("screen") == "settings"
+        currentScreen.value = if (isCalibrated) ScreenState.HOME else ScreenState.OOBE
+        if (requestedSettings && isCalibrated) {
+            isSettingsPanelOpen.value = true
         }
 
         setContent {
@@ -90,6 +94,9 @@ class MainActivity : ComponentActivity() {
                     } else {
                         MainAppNav(
                             currentScreen = currentScreen.value,
+                            isSettingsPanelOpen = isSettingsPanelOpen.value,
+                            onCloseSettingsPanel = { closeSettingsPanel() },
+                            onOpenSettingsPanel = { openSettingsPanel() },
                             onNavigate = { currentScreen.value = it }
                         )
                     }
@@ -120,7 +127,8 @@ class MainActivity : ComponentActivity() {
         }
 
         if (intent.getStringExtra("screen") == "settings") {
-            currentScreen.value = ScreenState.SETTINGS
+            currentScreen.value = ScreenState.HOME
+            isSettingsPanelOpen.value = true
             return
         }
 
@@ -132,6 +140,29 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    fun openSettingsPanel() {
+        if (currentScreen.value != ScreenState.HOME) {
+            currentScreen.value = ScreenState.HOME
+        }
+        isSettingsPanelOpen.value = true
+    }
+
+    fun closeSettingsPanel() {
+        isSettingsPanelOpen.value = false
+        if (currentScreen.value == ScreenState.SETTINGS) {
+            currentScreen.value = ScreenState.HOME
+        }
+    }
+
+    fun toggleSettingsPanel() {
+        if (currentScreen.value != ScreenState.HOME) {
+            currentScreen.value = ScreenState.HOME
+            isSettingsPanelOpen.value = true
+        } else {
+            isSettingsPanelOpen.value = !isSettingsPanelOpen.value
+        }
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         // Fortress Mode: when locked, block all escape keys (Back, Home, Menu, AppSwitch, Settings)
         if (CloudSyncManager.isDeviceLocked.value) {
@@ -140,6 +171,7 @@ class MainActivity : ComponentActivity() {
                     keyCode == KeyEvent.KEYCODE_HOME ||
                     keyCode == KeyEvent.KEYCODE_MENU ||
                     keyCode == KeyEvent.KEYCODE_SETTINGS ||
+                    keyCode == KEYCODE_TV_SETTINGS ||
                     keyCode == KeyEvent.KEYCODE_APP_SWITCH ||
                     keyCode == KeyEvent.KEYCODE_WINDOW ||
                     keyCode == KeyEvent.KEYCODE_SEARCH ||
@@ -149,6 +181,19 @@ class MainActivity : ComponentActivity() {
                 return true // Consume and strictly block
             }
         }
+
+        val keyCode = event.keyCode
+        val isSettingsKey = keyCode == KeyEvent.KEYCODE_SETTINGS ||
+                keyCode == KEYCODE_TV_SETTINGS ||
+                keyCode == KeyEvent.KEYCODE_MENU
+
+        if (isSettingsKey) {
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                toggleSettingsPanel()
+            }
+            return true
+        }
+
         return super.dispatchKeyEvent(event)
     }
 
@@ -159,7 +204,18 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        if (keyCode == KeyEvent.KEYCODE_SETTINGS ||
+            keyCode == KEYCODE_TV_SETTINGS ||
+            keyCode == KeyEvent.KEYCODE_MENU
+        ) {
+            if (event?.repeatCount == 0) {
+                toggleSettingsPanel()
+            }
+            return true
+        }
+
         if (keyCode == KeyEvent.KEYCODE_HOME) {
+            closeSettingsPanel()
             currentScreen.value = ScreenState.HOME
             return true
         }
@@ -185,6 +241,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainAppNav(
     currentScreen: ScreenState,
+    isSettingsPanelOpen: Boolean,
+    onCloseSettingsPanel: () -> Unit,
+    onOpenSettingsPanel: () -> Unit,
     onNavigate: (ScreenState) -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -197,11 +256,12 @@ fun MainAppNav(
                 }
             )
         }
-        ScreenState.HOME -> {
+        ScreenState.HOME, ScreenState.SETTINGS -> {
             HomeScreen(
-                onNavigateToSettings = {
-                    onNavigate(ScreenState.SETTINGS)
-                },
+                isSettingsOpen = isSettingsPanelOpen || (currentScreen == ScreenState.SETTINGS),
+                onOpenSettings = onOpenSettingsPanel,
+                onCloseSettings = onCloseSettingsPanel,
+                onNavigateToSettings = onOpenSettingsPanel,
                 onNavigateToSearch = {
                     onNavigate(ScreenState.SEARCH)
                 },
@@ -210,16 +270,9 @@ fun MainAppNav(
                 }
             )
             // On the home screen, intercept Back button to do nothing (prevent exiting to bloated launcher)
-            BackHandler(enabled = true) {
+            BackHandler(enabled = !isSettingsPanelOpen && currentScreen != ScreenState.SETTINGS) {
                 // Keep Talo OS active as standalone OS
             }
-        }
-        ScreenState.SETTINGS -> {
-            SettingsScreen(
-                onNavigateBack = {
-                    onNavigate(ScreenState.HOME)
-                }
-            )
         }
         ScreenState.SEARCH -> {
             SearchScreen(
@@ -231,7 +284,7 @@ fun MainAppNav(
                     if (app.id == "app-store" || app.packageName == "com.android.vending") {
                         TaloApplication.instance.installedAppsManager.launchStore(context)
                     } else if (app.id == "dock-settings" || app.id == "app-settings" || app.packageName == "com.talotv.settings") {
-                        onNavigate(ScreenState.SETTINGS)
+                        onOpenSettingsPanel()
                     } else {
                         TaloApplication.instance.installedAppsManager.launchPackage(context, app.packageName, app.name)
                     }

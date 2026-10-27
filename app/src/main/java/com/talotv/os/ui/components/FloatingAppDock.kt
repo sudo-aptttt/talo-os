@@ -48,6 +48,7 @@ import com.talotv.os.ui.theme.TaloGlassBorder
 fun FloatingAppDock(
     apps: List<DockAppItem> = ContentRepository.dockApps,
     firstItemFocusRequester: FocusRequester? = null,
+    settingsItemFocusRequester: FocusRequester? = null,
     onNavigateLeftFromFirst: (() -> Unit)? = null,
     onNavigateUpToProfile: (() -> Unit)? = null,
     onAppFocused: (DockAppItem) -> Unit,
@@ -72,9 +73,15 @@ fun FloatingAppDock(
             apps.forEachIndexed { index, app ->
                 val isFirst = index == 0
                 val isLast = index == apps.lastIndex
+                val isSettingsTile = app.iconType == DockIconType.SETTINGS || app.id == "dock-settings" || app.id == "app-settings"
+                val requester = when {
+                    isFirst -> firstItemFocusRequester
+                    isSettingsTile -> settingsItemFocusRequester
+                    else -> null
+                }
                 DockAppTile(
                     app = app,
-                    focusRequester = if (isFirst) firstItemFocusRequester else null,
+                    focusRequester = requester,
                     onNavigateLeft = if (isFirst) onNavigateLeftFromFirst else null,
                     onNavigateUp = if (isLast) onNavigateUpToProfile else null,
                     onFocus = { onAppFocused(app) },

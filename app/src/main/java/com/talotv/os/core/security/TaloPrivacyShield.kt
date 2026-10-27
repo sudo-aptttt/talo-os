@@ -111,6 +111,25 @@ object TaloPrivacyShield {
     }
 
     /**
+     * Deactivates the Talo Privacy Shield
+     */
+    fun deactivateShield() {
+        _isShieldActive.value = false
+        Log.i(TAG, "Talo Privacy Shield is DEACTIVATED.")
+    }
+
+    /**
+     * Toggles the shield state
+     */
+    fun toggleShield(context: Context) {
+        if (_isShieldActive.value) {
+            deactivateShield()
+        } else {
+            deployShield(context)
+        }
+    }
+
+    /**
      * Neutralizes advertising IDs and enforces strict opt-outs in system settings
      */
     private fun neutralizeSystemAdTracking(context: Context) {
