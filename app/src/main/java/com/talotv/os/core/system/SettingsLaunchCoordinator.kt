@@ -1,0 +1,45 @@
+package com.talotv.os.core.system
+
+import android.os.SystemClock
+
+/**
+ * Coordonne les transitions entre Talo OS Settings et les Paramètres système Android TV natifs (com.android.tv.settings).
+ * Permet à HomeKeyAccessibilityService de distinguer :
+ * 1. Une ouverture autorisée (l'utilisateur a explicitement cliqué sur "Paramètres TV" dans Talo OS) -> autorisée sans redirection
+ * 2. Une tentative externe d'ouverture (via Extended Controls d'Android Studio, un raccourci système ou une touche télécommande) -> interceptée et redirigée vers le panneau global Talo OS
+ */
+object SettingsLaunchCoordinator {
+
+    @Volatile
+    private var authorizedSession: Boolean = false
+
+    @Volatile
+    private var lastAuthorizedTimestamp: Long = 0L
+
+    /**
+     * Marque le lancement de l'activité native Android TV Settings comme explicitement autorisé par l'utilisateur.
+     */
+    fun authorizeNativeLaunch() {
+        authorizedSession = true
+        lastAuthorizedTimestamp = SystemClock.elapsedRealtime()
+    }
+
+    /**
+     * Indique si la session courante de Paramètres TV est issue d'une demande légitime de Talo OS.
+     * Conserve la validité pendant toute la durée où l'utilisateur interagit avec com.android.tv.settings,
+     * ou au minimum pendant 5 secondes après le déclenchement initial.
+     */
+    fun isAuthorized(): Boolean {
+        if (authorizedSession) return true
+        val elapsed = SystemClock.elapsedRealtime() - lastAuthorizedTimestamp
+        return elapsed in 0..5000L
+    }
+
+    /**
+     * Réinitialise l'autorisation dès que l'utilisateur quitte les paramètres TV et retourne sur Talo OS.
+     */
+    fun clearAuthorization() {
+        authorizedSession = false
+        lastAuthorizedTimestamp = 0L
+    }
+}

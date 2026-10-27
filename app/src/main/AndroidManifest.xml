@@ -89,6 +89,14 @@
                 <category android:name="android.intent.category.HOME" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+
+            <!-- Intercept system settings intent from Extended Controls or TV remote -->
+            <intent-filter android:priority="1000">
+                <action android:name="android.settings.SETTINGS" />
+                <action android:name="android.settings.QUICK_LAUNCH_SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.LEANBACK_SETTINGS" />
+            </intent-filter>
         </activity>
 
         <!-- Direct Boot Receiver (Starts Talo OS immediately when TV powers on) -->

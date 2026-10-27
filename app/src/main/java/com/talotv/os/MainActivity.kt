@@ -52,6 +52,7 @@ enum class ScreenState {
 
 // Android TV Leanback key code for physical TV settings buttons (remote control)
 private const val KEYCODE_TV_SETTINGS = 289
+private const val KEYCODE_QUICK_SETTINGS = 312
 
 class MainActivity : ComponentActivity() {
 
@@ -71,7 +72,11 @@ class MainActivity : ComponentActivity() {
         checkAndRequestRequiredPermissions()
 
         val isCalibrated = (application as TaloApplication).profileManager.isCalibrated()
-        val requestedSettings = intent?.getStringExtra("screen") == "settings"
+        val requestedSettings = intent?.getStringExtra("screen") == "settings" ||
+                intent?.action == android.provider.Settings.ACTION_SETTINGS ||
+                intent?.action == "android.settings.SETTINGS" ||
+                intent?.action == "android.settings.QUICK_LAUNCH_SETTINGS" ||
+                intent?.categories?.contains("android.intent.category.LEANBACK_SETTINGS") == true
         currentScreen.value = if (isCalibrated) ScreenState.HOME else ScreenState.OOBE
         if (requestedSettings && isCalibrated) {
             isSettingsPanelOpen.value = true
@@ -126,7 +131,12 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        if (intent.getStringExtra("screen") == "settings") {
+        val isSettingsRequested = intent.getStringExtra("screen") == "settings" ||
+                intent.action == android.provider.Settings.ACTION_SETTINGS ||
+                intent.action == "android.settings.SETTINGS" ||
+                intent.action == "android.settings.QUICK_LAUNCH_SETTINGS" ||
+                intent.categories?.contains("android.intent.category.LEANBACK_SETTINGS") == true
+        if (isSettingsRequested) {
             currentScreen.value = ScreenState.HOME
             isSettingsPanelOpen.value = true
             return
@@ -172,6 +182,7 @@ class MainActivity : ComponentActivity() {
                     keyCode == KeyEvent.KEYCODE_MENU ||
                     keyCode == KeyEvent.KEYCODE_SETTINGS ||
                     keyCode == KEYCODE_TV_SETTINGS ||
+                    keyCode == KEYCODE_QUICK_SETTINGS ||
                     keyCode == KeyEvent.KEYCODE_APP_SWITCH ||
                     keyCode == KeyEvent.KEYCODE_WINDOW ||
                     keyCode == KeyEvent.KEYCODE_SEARCH ||
@@ -185,6 +196,7 @@ class MainActivity : ComponentActivity() {
         val keyCode = event.keyCode
         val isSettingsKey = keyCode == KeyEvent.KEYCODE_SETTINGS ||
                 keyCode == KEYCODE_TV_SETTINGS ||
+                keyCode == KEYCODE_QUICK_SETTINGS ||
                 keyCode == KeyEvent.KEYCODE_MENU
 
         if (isSettingsKey) {
@@ -206,6 +218,7 @@ class MainActivity : ComponentActivity() {
 
         if (keyCode == KeyEvent.KEYCODE_SETTINGS ||
             keyCode == KEYCODE_TV_SETTINGS ||
+            keyCode == KEYCODE_QUICK_SETTINGS ||
             keyCode == KeyEvent.KEYCODE_MENU
         ) {
             if (event?.repeatCount == 0) {

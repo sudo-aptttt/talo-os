@@ -7,16 +7,42 @@ import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import com.talotv.os.MainActivity
 import com.talotv.os.core.security.TaloSecurityVault
+import com.talotv.os.core.system.SettingsLaunchCoordinator
 
 /**
- * Home Key Accessibility Service & Fortress Lock Shield
- * Intercepts navigation keys (Home, Back, Menu, AppSwitch).
- * When Lost Mode is active, consumes ALL navigation keys to prevent escape.
+ * Service d'Accessibilité Talo OS :
+ * - Intercepte les touches de navigation physique (Home, Menu, Settings).
+ * - En mode Perdu/Verrouillage strict (Fortress Lock), bloque toute tentative de fuite.
+ * - Capture les déclenchements externes des paramètres système (Extended Controls Android Studio, raccourcis télécommande)
+ *   et redirige vers le volet global des Paramètres Talo OS, sauf si explicitement ouvert depuis Talo OS.
  */
 class HomeKeyAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // Not used, we only filter key events
+        if (event == null) return
+
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            val pkg = event.packageName?.toString() ?: ""
+
+            if (pkg == "com.android.tv.settings") {
+                if (SettingsLaunchCoordinator.isAuthorized()) {
+                    // Session légitimement ouverte depuis le volet Talo OS ("Paramètres TV")
+                    Log.d("TaloAccessibility", "Native Android TV Settings allowed (authorized session).")
+                } else {
+                    // Déclenchement externe non sollicité (ex: Extended Controls d'Android Studio, raccourci système)
+                    Log.d("TaloAccessibility", "Unauthorized external launch of $pkg detected. Redirecting to Talo OS Settings.")
+                    performGlobalAction(GLOBAL_ACTION_BACK)
+                    val intent = Intent(this, MainActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                        putExtra("screen", "settings")
+                    }
+                    startActivity(intent)
+                }
+            } else if (pkg == packageName || pkg == "com.talotv.os" || pkg == "com.talotv.os.debug") {
+                // Retour sur le launcher Talo OS : réinitialiser l'autorisation pour les prochaines requêtes externes
+                SettingsLaunchCoordinator.clearAuthorization()
+            }
+        }
     }
 
     override fun onInterrupt() {
@@ -54,6 +80,24 @@ class HomeKeyAccessibilityService : AccessibilityService() {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             }
             startActivity(intent)
+            return true
+        }
+
+        // Settings key interception (Remote control / Extended Controls)
+        val isSettingsKey = keyCode == KeyEvent.KEYCODE_SETTINGS ||
+                keyCode == 289 /* KEYCODE_TV_SETTINGS */ ||
+                keyCode == 312 /* KEYCODE_QUICK_SETTINGS */ ||
+                keyCode == KeyEvent.KEYCODE_MENU
+
+        if (isSettingsKey) {
+            if (action == KeyEvent.ACTION_UP) {
+                Log.d("TaloAccessibility", "Settings Key captured ($keyCode). Launching Talo OS Settings.")
+                val intent = Intent(this, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    putExtra("screen", "settings")
+                }
+                startActivity(intent)
+            }
             return true
         }
 
