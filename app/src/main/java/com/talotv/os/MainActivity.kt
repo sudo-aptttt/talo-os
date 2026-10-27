@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.talotv.os.core.security.TaloSecurityVault
 import com.talotv.os.core.system.CloudSyncManager
+import com.talotv.os.core.system.SettingsLaunchCoordinator
 import com.talotv.os.ui.screens.HomeScreen
 import com.talotv.os.ui.screens.LostModeScreen
 import com.talotv.os.ui.screens.OOBESetupScreen
@@ -112,6 +113,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (SettingsLaunchCoordinator.shouldRestoreSettingsPanel()) {
+            currentScreen.value = ScreenState.HOME
+            isSettingsPanelOpen.value = true
+        }
         // Step 16: Re-poll telemetry and cloud updates on resume
         CloudSyncManager.startBackgroundSync(this)
     }
@@ -228,6 +233,7 @@ class MainActivity : ComponentActivity() {
         }
 
         if (keyCode == KeyEvent.KEYCODE_HOME) {
+            SettingsLaunchCoordinator.cancelReturnToSettings()
             closeSettingsPanel()
             currentScreen.value = ScreenState.HOME
             return true

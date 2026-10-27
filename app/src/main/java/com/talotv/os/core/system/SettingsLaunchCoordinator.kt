@@ -16,11 +16,16 @@ object SettingsLaunchCoordinator {
     @Volatile
     private var lastAuthorizedTimestamp: Long = 0L
 
+    @Volatile
+    private var awaitingReturnToSettings: Boolean = false
+
     /**
-     * Marque le lancement de l'activité native Android TV Settings comme explicitement autorisé par l'utilisateur.
+     * Marque le lancement de l'activité native Android TV Settings comme explicitement autorisé par l'utilisateur
+     * et active l'attente du retour pour ré-ouvrir le volet des paramètres Talo OS.
      */
     fun authorizeNativeLaunch() {
         authorizedSession = true
+        awaitingReturnToSettings = true
         lastAuthorizedTimestamp = SystemClock.elapsedRealtime()
     }
 
@@ -36,6 +41,29 @@ object SettingsLaunchCoordinator {
     }
 
     /**
+     * Consomme le signal de retour depuis les paramètres TV natifs.
+     * Retourne true une seule fois si l'utilisateur revient d'une session native autorisée.
+     */
+    /**
+     * Consomme le signal de retour depuis les paramètres TV natifs.
+     * Retourne true une seule fois si l'utilisateur revient d'une session native autorisée.
+     */
+    fun shouldRestoreSettingsPanel(): Boolean {
+        val restore = awaitingReturnToSettings
+        awaitingReturnToSettings = false
+        return restore
+    }
+
+    /**
+     * Annule l'attente du retour aux paramètres si l'utilisateur appuie explicitement sur la touche Accueil (Home).
+     */
+    fun cancelReturnToSettings() {
+        awaitingReturnToSettings = false
+        authorizedSession = false
+        lastAuthorizedTimestamp = 0L
+    }
+
+    /**
      * Réinitialise l'autorisation dès que l'utilisateur quitte les paramètres TV et retourne sur Talo OS.
      */
     fun clearAuthorization() {
@@ -43,3 +71,4 @@ object SettingsLaunchCoordinator {
         lastAuthorizedTimestamp = 0L
     }
 }
+

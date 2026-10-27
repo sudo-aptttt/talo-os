@@ -160,7 +160,14 @@ object CloudSyncManager {
                 TaloSecurityVault.setDeviceSecret(context, deviceSecret)
             }
 
-            val userName = json.optJSONObject("user")?.optString("name")
+            val userObj = json.optJSONObject("user")
+            val userName = userObj?.optString("name")
+            val userEmail = userObj?.optString("email")
+            if (!userName.isNullOrEmpty()) {
+                val emailToSave = if (!userEmail.isNullOrEmpty()) userEmail else "$userName@talotv.com"
+                setCloudAccountInfo(context, userName, emailToSave)
+            }
+
             val profilesArray = json.optJSONArray("profiles")
             val profilesList = parseProfilesArray(profilesArray)
 
@@ -174,6 +181,41 @@ object CloudSyncManager {
             Log.w(TAG, "Pairing poll error: ${e.message}")
             Triple(false, null, null)
         }
+    }
+
+    fun getCloudAccountInfo(context: Context): Pair<String, String> {
+        val prefs = context.getSharedPreferences("talo_cloud_account_prefs", Context.MODE_PRIVATE)
+        var name = prefs.getString("cloud_account_name", null)
+        var email = prefs.getString("cloud_account_email", null)
+
+        if (name.isNullOrBlank() || email.isNullOrBlank()) {
+            try {
+                val am = android.accounts.AccountManager.get(context)
+                val accounts = am.getAccountsByType("com.google")
+                if (accounts.isNotEmpty()) {
+                    val accEmail = accounts[0].name
+                    email = accEmail
+                    name = accEmail.substringBefore("@").replaceFirstChar { it.uppercase() }
+                }
+            } catch (_: Exception) {}
+        }
+
+        if (name.isNullOrBlank()) {
+            name = "Alexandre"
+        }
+        if (email.isNullOrBlank()) {
+            email = "alexandre@talotv.com"
+        }
+
+        return Pair(name, email)
+    }
+
+    fun setCloudAccountInfo(context: Context, name: String, email: String) {
+        val prefs = context.getSharedPreferences("talo_cloud_account_prefs", Context.MODE_PRIVATE)
+        prefs.edit()
+            .putString("cloud_account_name", name)
+            .putString("cloud_account_email", email)
+            .apply()
     }
 
     /**

@@ -2,6 +2,7 @@ package com.talotv.os.ui.components
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.SystemClock
 import android.provider.Settings
 import android.widget.Toast
@@ -23,6 +24,7 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -39,11 +41,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,7 +64,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -68,16 +72,21 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.talotv.os.TaloApplication
 import com.talotv.os.core.hardware.ProfileType
-import com.talotv.os.core.profile.UserProfileManager
 import com.talotv.os.core.security.TaloPrivacyShield
+import com.talotv.os.core.system.CloudSyncManager
 import com.talotv.os.core.system.SettingsLaunchCoordinator
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 enum class SettingsPanelLevel {
     MAIN,
-    TALO_SETTINGS
+    TALO_SETTINGS,
+    ABOUT_TALO
 }
 
 /**
@@ -92,7 +101,7 @@ enum class SettingsPanelLevel {
  * - Navigation D-Pad :
  *     - Droite / OK : actionne le réglage ou entre dans le sous-menu
  *     - Gauche / Retour : revient au menu parent ou ferme le volet
- *     - Zéro bouton retour virtuel affiché à l'écran
+ *     - Interception D-Pad via onPreviewKeyEvent pour contourner la consommation prématurée par Compose focus traversal
  */
 @Composable
 fun SettingsSidePanel(
@@ -101,23 +110,20 @@ fun SettingsSidePanel(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val soundManager = remember { TaloApplication.instance.soundEffectManager }
     val profileManager = remember { TaloApplication.instance.profileManager }
-    val userProfileManager = remember { UserProfileManager(context) }
-
-    val activeProfile by userProfileManager.activeProfile.collectAsState()
-    val allProfiles by userProfileManager.profiles.collectAsState()
 
     val isShieldActive by TaloPrivacyShield.isShieldActive.collectAsState()
     val blockedCount by TaloPrivacyShield.blockedTrackersCount.collectAsState()
 
-    val notifPrefs = remember { context.getSharedPreferences("talo_notif_prefs", Context.MODE_PRIVATE) }
-    var cinemaModeEnabled by remember { mutableStateOf(notifPrefs.getBoolean("dnd_cinema_mode", false)) }
-
     var currentProfileType by remember { mutableStateOf(profileManager.getCurrentProfileType()) }
 
     var currentLevel by remember { mutableStateOf(SettingsPanelLevel.MAIN) }
-    var hasReturnedFromSubLevel by remember { mutableStateOf(false) }
+    var hasReturnedFromTaloSettings by remember { mutableStateOf(false) }
+    var hasReturnedFromAbout by remember { mutableStateOf(false) }
+
+    val (cloudName, cloudEmail) = remember { CloudSyncManager.getCloudAccountInfo(context) }
 
     val versionName = remember {
         try {
@@ -128,61 +134,110 @@ fun SettingsSidePanel(
         }
     }
 
-    // Screen time computation
-    val screenTimeStr = remember {
-        val totalMinutes = (SystemClock.elapsedRealtime() / (1000 * 60)).coerceAtLeast(35)
-        val hours = totalMinutes / 60
-        val mins = totalMinutes % 60
-        if (hours > 0) "${hours}h ${mins}m" else "${mins}m"
+    val deviceDisplayName = remember {
+        val model = Build.MODEL
+        if (model.isNotBlank()) model else "Google TV Streamer (4K)"
     }
 
-    // System uptime computation
-    val uptimeStr = remember {
-        val ms = SystemClock.elapsedRealtime()
-        val hours = ms / (1000 * 60 * 60)
-        val mins = (ms / (1000 * 60)) % 60
-        if (hours > 0) "${hours}h ${mins}m" else "${mins}m"
+    // Dynamic Live Uptime updated every second when inside ABOUT_TALO
+    var liveUptimeMs by remember { mutableStateOf(SystemClock.elapsedRealtime()) }
+    LaunchedEffect(currentLevel) {
+        if (currentLevel == SettingsPanelLevel.ABOUT_TALO) {
+            while (true) {
+                liveUptimeMs = SystemClock.elapsedRealtime()
+                delay(1000)
+            }
+        }
     }
+
+    // Software Update Checking state
+    var isCheckingUpdates by remember { mutableStateOf(false) }
+    var updateStatusText by remember { mutableStateOf("Votre système Talo OS est à jour") }
 
     // Level 1 Focus Requesters
     val focusTvSettings = remember { FocusRequester() }
     val focusTaloSettings = remember { FocusRequester() }
 
     // Level 2 Focus Requesters
-    val focusProfile = remember { FocusRequester() }
+    val focusAccount = remember { FocusRequester() }
     val focusRender = remember { FocusRequester() }
     val focusShield = remember { FocusRequester() }
-    val focusCinema = remember { FocusRequester() }
     val focusAbout = remember { FocusRequester() }
 
-    // Focus handling when switching levels
+    // Level 3 Focus Requesters
+    val focusCheckUpdate = remember { FocusRequester() }
+    val focusTvUpdate = remember { FocusRequester() }
+    val focusOsVersion = remember { FocusRequester() }
+    val focusDevice = remember { FocusRequester() }
+    val focusAndroidVer = remember { FocusRequester() }
+    val focusUptime = remember { FocusRequester() }
+
+    // Restore focus when returning from native Android TV activities
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                coroutineScope.launch {
+                    delay(60)
+                    try {
+                        when (currentLevel) {
+                            SettingsPanelLevel.MAIN -> focusTvSettings.requestFocus()
+                            SettingsPanelLevel.TALO_SETTINGS -> focusAccount.requestFocus()
+                            SettingsPanelLevel.ABOUT_TALO -> focusTvUpdate.requestFocus()
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // Dynamic focus orchestration when switching levels
     LaunchedEffect(currentLevel) {
         delay(60)
         try {
             when (currentLevel) {
                 SettingsPanelLevel.MAIN -> {
-                    if (hasReturnedFromSubLevel) {
+                    if (hasReturnedFromTaloSettings) {
                         focusTaloSettings.requestFocus()
-                        hasReturnedFromSubLevel = false
+                        hasReturnedFromTaloSettings = false
                     } else {
                         focusTvSettings.requestFocus()
                     }
                 }
                 SettingsPanelLevel.TALO_SETTINGS -> {
-                    focusProfile.requestFocus()
+                    if (hasReturnedFromAbout) {
+                        focusAbout.requestFocus()
+                        hasReturnedFromAbout = false
+                    } else {
+                        focusAccount.requestFocus()
+                    }
+                }
+                SettingsPanelLevel.ABOUT_TALO -> {
+                    focusCheckUpdate.requestFocus()
                 }
             }
         } catch (_: Exception) {}
     }
 
-    // Back key handling
+    // Back key handling (Strict Leanback: Level 3 -> Level 2 -> Level 1 -> Close)
     BackHandler(enabled = true) {
         soundManager.playSelectSound()
-        if (currentLevel == SettingsPanelLevel.TALO_SETTINGS) {
-            hasReturnedFromSubLevel = true
-            currentLevel = SettingsPanelLevel.MAIN
-        } else {
-            onClose()
+        when (currentLevel) {
+            SettingsPanelLevel.ABOUT_TALO -> {
+                hasReturnedFromAbout = true
+                currentLevel = SettingsPanelLevel.TALO_SETTINGS
+            }
+            SettingsPanelLevel.TALO_SETTINGS -> {
+                hasReturnedFromTaloSettings = true
+                currentLevel = SettingsPanelLevel.MAIN
+            }
+            SettingsPanelLevel.MAIN -> {
+                onClose()
+            }
         }
     }
 
@@ -196,7 +251,7 @@ fun SettingsSidePanel(
         AnimatedContent(
             targetState = currentLevel,
             transitionSpec = {
-                if (targetState == SettingsPanelLevel.TALO_SETTINGS) {
+                if (initialState.ordinal < targetState.ordinal) {
                     (slideInHorizontally(
                         initialOffsetX = { it },
                         animationSpec = tween(240)
@@ -221,12 +276,13 @@ fun SettingsSidePanel(
             label = "SettingsSidePanelTransition"
         ) { level ->
             when (level) {
+                // ============================================================
+                // LEVEL 1: PARAMÈTRES GÉNÉRAUX
+                // ============================================================
                 SettingsPanelLevel.MAIN -> {
                     Column(
-                        modifier = Modifier
-                            .fillMaxSize()
+                        modifier = Modifier.fillMaxSize()
                     ) {
-                        // Android TV Leanback Top Header
                         Text(
                             text = "Paramètres",
                             color = Color.White,
@@ -238,9 +294,9 @@ fun SettingsSidePanel(
 
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(0.dp),
+                            contentPadding = PaddingValues(bottom = 36.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            // Category subheader in Google TV Blue
                             item {
                                 AndroidTvSectionHeader(title = "Paramètres généraux")
                             }
@@ -258,8 +314,6 @@ fun SettingsSidePanel(
                                     },
                                     onClick = {
                                         SettingsLaunchCoordinator.authorizeNativeLaunch()
-                                        // Immediately close Talo's side panel BEFORE launching system settings
-                                        onClose()
                                         launchAndroidTvSettings(context)
                                     },
                                     onNavigateLeft = {
@@ -267,7 +321,6 @@ fun SettingsSidePanel(
                                     },
                                     onNavigateRight = {
                                         SettingsLaunchCoordinator.authorizeNativeLaunch()
-                                        onClose()
                                         launchAndroidTvSettings(context)
                                     }
                                 )
@@ -277,7 +330,7 @@ fun SettingsSidePanel(
                             item {
                                 AndroidTvSettingsRow(
                                     title = "Paramètres Talo TV",
-                                    subtitle = "Profils, Rendu graphique, Bouclier Privacy Shield, Mode Cinéma...",
+                                    subtitle = "Compte Cloud, Rendu graphique, Privacy Shield, À propos...",
                                     focusRequester = focusTaloSettings,
                                     isLastItem = true,
                                     icon = { tint -> SparkleTaloIcon(size = 24.dp, tint = tint) },
@@ -299,12 +352,13 @@ fun SettingsSidePanel(
                     }
                 }
 
+                // ============================================================
+                // LEVEL 2: PARAMÈTRES TALO TV
+                // ============================================================
                 SettingsPanelLevel.TALO_SETTINGS -> {
                     Column(
-                        modifier = Modifier
-                            .fillMaxSize()
+                        modifier = Modifier.fillMaxSize()
                     ) {
-                        // Sub-menu Header (Identical typography to Level 1)
                         Text(
                             text = "Paramètres Talo TV",
                             color = Color.White,
@@ -316,55 +370,45 @@ fun SettingsSidePanel(
 
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(0.dp),
+                            contentPadding = PaddingValues(bottom = 36.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            // Section 1: Personnalisation & Rendu
+                            // Section 1: Compte & Rendu
                             item {
-                                AndroidTvSectionHeader(title = "Personnalisation & Rendu")
+                                AndroidTvSectionHeader(title = "Compte & Rendu")
                             }
 
-                            // 1. Profils Talo TV
+                            // 1. Compte Cloud Talo
                             item {
                                 AndroidTvSettingsRow(
-                                    title = "Profils Talo TV",
-                                    subtitle = "${activeProfile.name} • Temps d'écran : $screenTimeStr",
-                                    focusRequester = focusProfile,
+                                    title = "Compte Cloud Talo",
+                                    subtitle = "$cloudEmail • Synchronisé",
+                                    focusRequester = focusAccount,
                                     isFirstItem = true,
-                                    icon = { tint -> UserAvatarIcon(size = 24.dp, tint = tint) },
+                                    icon = { tint -> CloudCheckIcon(size = 24.dp, tint = tint) },
                                     trailingContent = { isFocused ->
                                         AndroidTvValueText(
-                                            value = activeProfile.name,
-                                            isFocused = isFocused
+                                            value = "Connecté",
+                                            isFocused = isFocused,
+                                            showChevron = false
                                         )
                                     },
                                     onClick = {
-                                        if (allProfiles.isNotEmpty()) {
-                                            val currentIndex = allProfiles.indexOfFirst { it.id == activeProfile.id }
-                                            val nextIndex = if (currentIndex >= 0) (currentIndex + 1) % allProfiles.size else 0
-                                            val nextProfile = allProfiles[nextIndex]
-                                            userProfileManager.switchProfile(nextProfile)
-                                            Toast.makeText(context, "Profil actif : ${nextProfile.name}", Toast.LENGTH_SHORT).show()
-                                        } else if (onOpenProfileSwitcher != null) {
-                                            onOpenProfileSwitcher()
-                                        }
+                                        CloudSyncManager.startBackgroundSync(context)
+                                        Toast.makeText(context, "Compte Cloud Talo ($cloudEmail) synchronisé", Toast.LENGTH_SHORT).show()
                                     },
                                     onNavigateLeft = {
-                                        hasReturnedFromSubLevel = true
+                                        hasReturnedFromTaloSettings = true
                                         currentLevel = SettingsPanelLevel.MAIN
                                     },
                                     onNavigateRight = {
-                                        if (allProfiles.isNotEmpty()) {
-                                            val currentIndex = allProfiles.indexOfFirst { it.id == activeProfile.id }
-                                            val nextIndex = if (currentIndex >= 0) (currentIndex + 1) % allProfiles.size else 0
-                                            val nextProfile = allProfiles[nextIndex]
-                                            userProfileManager.switchProfile(nextProfile)
-                                            Toast.makeText(context, "Profil actif : ${nextProfile.name}", Toast.LENGTH_SHORT).show()
-                                        }
+                                        CloudSyncManager.startBackgroundSync(context)
+                                        Toast.makeText(context, "Compte Cloud Talo ($cloudEmail) synchronisé", Toast.LENGTH_SHORT).show()
                                     }
                                 )
                             }
 
-                            // 2. Thème & Rendu graphique
+                            // 2. Rendu graphique
                             item {
                                 val modeLabel = when (currentProfileType) {
                                     ProfileType.ECO -> "Mode Éco (Économie d'énergie)"
@@ -387,7 +431,8 @@ fun SettingsSidePanel(
                                     trailingContent = { isFocused ->
                                         AndroidTvValueText(
                                             value = badgeText,
-                                            isFocused = isFocused
+                                            isFocused = isFocused,
+                                            showChevron = false
                                         )
                                     },
                                     onClick = {
@@ -408,7 +453,7 @@ fun SettingsSidePanel(
                                         Toast.makeText(context, "Rendu : $newModeText", Toast.LENGTH_SHORT).show()
                                     },
                                     onNavigateLeft = {
-                                        hasReturnedFromSubLevel = true
+                                        hasReturnedFromTaloSettings = true
                                         currentLevel = SettingsPanelLevel.MAIN
                                     },
                                     onNavigateRight = {
@@ -431,17 +476,17 @@ fun SettingsSidePanel(
                                 )
                             }
 
-                            // Section 2: Sécurité & Salon
+                            // Section 2: Sécurité & Système
                             item {
-                                AndroidTvSectionHeader(title = "Sécurité & Salon")
+                                AndroidTvSectionHeader(title = "Sécurité & Système")
                             }
 
                             // 3. Bouclier Privacy Shield
                             item {
                                 val shieldSubtitle = if (isShieldActive) {
-                                    "Protection active ($blockedCount traceurs bloqués)"
+                                    "Actif • Désactiver si un replay vidéo avec pub bloque"
                                 } else {
-                                    "Protection anti-traceurs désactivée"
+                                    "Désactivé • Recommandé pour débloquer les replays vidéos"
                                 }
 
                                 AndroidTvSettingsRow(
@@ -462,87 +507,236 @@ fun SettingsSidePanel(
                                         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                                     },
                                     onNavigateLeft = {
-                                        hasReturnedFromSubLevel = true
+                                        hasReturnedFromTaloSettings = true
                                         currentLevel = SettingsPanelLevel.MAIN
                                     },
                                     onNavigateRight = {
-                                        TaloPrivacyShield.toggleShield(context)
-                                        val nowActive = !isShieldActive
-                                        val msg = if (nowActive) "Bouclier Privacy Shield : Activé" else "Bouclier Privacy Shield : Désactivé"
-                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                        if (!isShieldActive) {
+                                            TaloPrivacyShield.toggleShield(context)
+                                            Toast.makeText(context, "Bouclier Privacy Shield : Activé", Toast.LENGTH_SHORT).show()
+                                        }
                                     }
                                 )
                             }
 
-                            // 4. Mode Cinéma immersif
-                            item {
-                                val cinemaSubtitle = if (cinemaModeEnabled) {
-                                    "Ne pas déranger actif • Notifications masquées"
-                                } else {
-                                    "Désactivé • Mode salon standard"
-                                }
-
-                                AndroidTvSettingsRow(
-                                    title = "Mode Cinéma immersif",
-                                    subtitle = cinemaSubtitle,
-                                    focusRequester = focusCinema,
-                                    icon = { tint -> CinemaIcon(size = 24.dp, tint = tint) },
-                                    trailingContent = { isFocused ->
-                                        AndroidTvSwitch(
-                                            checked = cinemaModeEnabled,
-                                            isFocusedRow = isFocused
-                                        )
-                                    },
-                                    onClick = {
-                                        cinemaModeEnabled = !cinemaModeEnabled
-                                        notifPrefs.edit().putBoolean("dnd_cinema_mode", cinemaModeEnabled).apply()
-                                        val msg = if (cinemaModeEnabled) "Mode Cinéma activé" else "Mode Cinéma désactivé"
-                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                                    },
-                                    onNavigateLeft = {
-                                        hasReturnedFromSubLevel = true
-                                        currentLevel = SettingsPanelLevel.MAIN
-                                    },
-                                    onNavigateRight = {
-                                        cinemaModeEnabled = !cinemaModeEnabled
-                                        notifPrefs.edit().putBoolean("dnd_cinema_mode", cinemaModeEnabled).apply()
-                                        val msg = if (cinemaModeEnabled) "Mode Cinéma activé" else "Mode Cinéma désactivé"
-                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                                    }
-                                )
-                            }
-
-                            // Section 3: Système
-                            item {
-                                AndroidTvSectionHeader(title = "Système")
-                            }
-
-                            // 5. À propos de Talo TV
+                            // 4. À propos de Talo TV OS (Navigates to dedicated sub-page)
                             item {
                                 AndroidTvSettingsRow(
-                                    title = "À propos de Talo TV",
-                                    subtitle = "Version $versionName • Uptime : $uptimeStr",
+                                    title = "À propos de Talo TV OS",
+                                    subtitle = "Version $versionName • Système & Mises à jour",
                                     focusRequester = focusAbout,
                                     isLastItem = true,
                                     icon = { tint -> InfoCircleIcon(size = 24.dp, tint = tint) },
                                     trailingContent = { isFocused ->
-                                        Text(
-                                            text = "À jour",
-                                            color = if (isFocused) Color(0xFFBDC1C6) else Color(0xFF9AA0A6),
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Normal
-                                        )
+                                        AndroidTvChevron(isFocused = isFocused)
                                     },
                                     onClick = {
-                                        Toast.makeText(context, "Talo OS v$versionName — Uptime : $uptimeStr (Système à jour)", Toast.LENGTH_SHORT).show()
+                                        currentLevel = SettingsPanelLevel.ABOUT_TALO
                                     },
                                     onNavigateLeft = {
-                                        hasReturnedFromSubLevel = true
+                                        hasReturnedFromTaloSettings = true
                                         currentLevel = SettingsPanelLevel.MAIN
                                     },
                                     onNavigateRight = {
-                                        Toast.makeText(context, "Talo OS v$versionName — Uptime : $uptimeStr (Système à jour)", Toast.LENGTH_SHORT).show()
+                                        currentLevel = SettingsPanelLevel.ABOUT_TALO
                                     }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // ============================================================
+                // LEVEL 3: À PROPOS DE TALO TV OS & MISES À JOUR
+                // ============================================================
+                SettingsPanelLevel.ABOUT_TALO -> {
+                    Column(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Text(
+                            text = "À propos de Talo TV OS",
+                            color = Color.White,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.15.sp,
+                            modifier = Modifier.padding(top = 56.dp, start = 24.dp, end = 24.dp, bottom = 18.dp)
+                        )
+
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(0.dp),
+                            contentPadding = PaddingValues(bottom = 36.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            // Section 1: Mises à jour logicielles
+                            item {
+                                AndroidTvSectionHeader(title = "Mises à jour logicielles")
+                            }
+
+                            // 1. Rechercher des mises à jour Talo OS
+                            item {
+                                AndroidTvSettingsRow(
+                                    title = "Rechercher des mises à jour",
+                                    subtitle = updateStatusText,
+                                    focusRequester = focusCheckUpdate,
+                                    isFirstItem = true,
+                                    icon = { tint -> UpdateCheckIcon(size = 24.dp, tint = tint) },
+                                    trailingContent = { isFocused ->
+                                        AndroidTvValueText(
+                                            value = if (isCheckingUpdates) "Vérification..." else "À jour",
+                                            isFocused = isFocused,
+                                            showChevron = false
+                                        )
+                                    },
+                                    onClick = {
+                                        if (!isCheckingUpdates) {
+                                            coroutineScope.launch {
+                                                isCheckingUpdates = true
+                                                updateStatusText = "Recherche de mise à jour en cours..."
+                                                delay(1500)
+                                                CloudSyncManager.startBackgroundSync(context)
+                                                val update = CloudSyncManager.availableUpdate.value
+                                                isCheckingUpdates = false
+                                                if (update != null && update.hasUpdate) {
+                                                    updateStatusText = "Mise à jour v${update.latestVersion} disponible"
+                                                    Toast.makeText(context, "Mise à jour Talo OS v${update.latestVersion} disponible", Toast.LENGTH_LONG).show()
+                                                } else {
+                                                    updateStatusText = "Votre système Talo OS est à jour (v$versionName)"
+                                                    Toast.makeText(context, "Talo OS est à jour", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        }
+                                    },
+                                    onNavigateLeft = {
+                                        hasReturnedFromAbout = true
+                                        currentLevel = SettingsPanelLevel.TALO_SETTINGS
+                                    },
+                                    onNavigateRight = {
+                                        if (!isCheckingUpdates) {
+                                            coroutineScope.launch {
+                                                isCheckingUpdates = true
+                                                updateStatusText = "Recherche de mise à jour en cours..."
+                                                delay(1500)
+                                                CloudSyncManager.startBackgroundSync(context)
+                                                val update = CloudSyncManager.availableUpdate.value
+                                                isCheckingUpdates = false
+                                                if (update != null && update.hasUpdate) {
+                                                    updateStatusText = "Mise à jour v${update.latestVersion} disponible"
+                                                    Toast.makeText(context, "Mise à jour Talo OS v${update.latestVersion} disponible", Toast.LENGTH_LONG).show()
+                                                } else {
+                                                    updateStatusText = "Votre système Talo OS est à jour (v$versionName)"
+                                                    Toast.makeText(context, "Talo OS est à jour", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+
+                            // 2. Mise à jour système Android TV
+                            item {
+                                AndroidTvSettingsRow(
+                                    title = "Mise à jour système Android TV",
+                                    subtitle = "Ouvrir la page de mise à jour du système Google TV",
+                                    focusRequester = focusTvUpdate,
+                                    icon = { tint -> TvMonitorIcon(size = 24.dp, tint = tint) },
+                                    trailingContent = { isFocused ->
+                                        AndroidTvChevron(isFocused = isFocused)
+                                    },
+                                    onClick = {
+                                        SettingsLaunchCoordinator.authorizeNativeLaunch()
+                                        launchSystemUpdate(context)
+                                    },
+                                    onNavigateLeft = {
+                                        hasReturnedFromAbout = true
+                                        currentLevel = SettingsPanelLevel.TALO_SETTINGS
+                                    },
+                                    onNavigateRight = {
+                                        SettingsLaunchCoordinator.authorizeNativeLaunch()
+                                        launchSystemUpdate(context)
+                                    }
+                                )
+                            }
+
+                            // Section 2: Informations système
+                            item {
+                                AndroidTvSectionHeader(title = "Informations système")
+                            }
+
+                            // 3. Version Talo OS
+                            item {
+                                AndroidTvSettingsRow(
+                                    title = "Version Talo OS",
+                                    subtitle = "v$versionName (Build 100 • Production)",
+                                    focusRequester = focusOsVersion,
+                                    icon = { tint -> SparkleTaloIcon(size = 24.dp, tint = tint) },
+                                    trailingContent = null,
+                                    onClick = {
+                                        Toast.makeText(context, "Talo OS v$versionName (Production)", Toast.LENGTH_SHORT).show()
+                                    },
+                                    onNavigateLeft = {
+                                        hasReturnedFromAbout = true
+                                        currentLevel = SettingsPanelLevel.TALO_SETTINGS
+                                    },
+                                    onNavigateRight = null
+                                )
+                            }
+
+                            // 4. Appareil
+                            item {
+                                AndroidTvSettingsRow(
+                                    title = "Appareil cible",
+                                    subtitle = "$deviceDisplayName (${Build.MANUFACTURER})",
+                                    focusRequester = focusDevice,
+                                    icon = { tint -> TvMonitorIcon(size = 24.dp, tint = tint) },
+                                    trailingContent = null,
+                                    onClick = {
+                                        Toast.makeText(context, "$deviceDisplayName - ${Build.BRAND} ${Build.DEVICE}", Toast.LENGTH_SHORT).show()
+                                    },
+                                    onNavigateLeft = {
+                                        hasReturnedFromAbout = true
+                                        currentLevel = SettingsPanelLevel.TALO_SETTINGS
+                                    },
+                                    onNavigateRight = null
+                                )
+                            }
+
+                            // 5. Version Android TV
+                            item {
+                                AndroidTvSettingsRow(
+                                    title = "Version Android TV",
+                                    subtitle = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
+                                    focusRequester = focusAndroidVer,
+                                    icon = { tint -> InfoCircleIcon(size = 24.dp, tint = tint) },
+                                    trailingContent = null,
+                                    onClick = {
+                                        Toast.makeText(context, "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})", Toast.LENGTH_SHORT).show()
+                                    },
+                                    onNavigateLeft = {
+                                        hasReturnedFromAbout = true
+                                        currentLevel = SettingsPanelLevel.TALO_SETTINGS
+                                    },
+                                    onNavigateRight = null
+                                )
+                            }
+
+                            // 6. Temps de fonctionnement (Uptime)
+                            item {
+                                val uptimeFormatted = formatUptime(liveUptimeMs)
+                                AndroidTvSettingsRow(
+                                    title = "Temps de fonctionnement",
+                                    subtitle = "$uptimeFormatted • En direct",
+                                    focusRequester = focusUptime,
+                                    isLastItem = true,
+                                    icon = { tint -> ClockTimerIcon(size = 24.dp, tint = tint) },
+                                    trailingContent = null,
+                                    onClick = {
+                                        Toast.makeText(context, "Temps de fonctionnement : $uptimeFormatted", Toast.LENGTH_SHORT).show()
+                                    },
+                                    onNavigateLeft = {
+                                        hasReturnedFromAbout = true
+                                        currentLevel = SettingsPanelLevel.TALO_SETTINGS
+                                    },
+                                    onNavigateRight = null
                                 )
                             }
                         }
@@ -550,6 +744,22 @@ fun SettingsSidePanel(
                 }
             }
         }
+    }
+}
+
+/**
+ * Formate le temps de fonctionnement en direct (jours, heures, minutes, secondes)
+ */
+private fun formatUptime(uptimeMs: Long): String {
+    val totalSeconds = uptimeMs / 1000
+    val days = totalSeconds / (24 * 3600)
+    val hours = (totalSeconds % (24 * 3600)) / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+    return when {
+        days > 0 -> "${days} j, ${hours} h, ${minutes} min"
+        hours > 0 -> "${hours} h, ${minutes} min, ${seconds} s"
+        else -> "${minutes} min, ${seconds} s"
     }
 }
 
@@ -577,6 +787,9 @@ private fun AndroidTvSectionHeader(title: String) {
  * - Focus : Surbrillance charbon/ardoise sombre pleine largeur (#3C4043),
  *           Icône #FFFFFF, titre blanc pur (#FFFFFF, 15sp, Medium), sous-titre #BDC1C6
  * - Aucun effet de zoom/scale déstabilisant, stabilité totale à la télécommande
+ * - Navigation D-Pad :
+ *     - onPreviewKeyEvent intercepte Key.DirectionRight et Key.DirectionLeft
+ *       AVANT que Compose FocusManager n'évalue la navigation 2D et ne consomme les événements.
  */
 @Composable
 private fun AndroidTvSettingsRow(
@@ -616,52 +829,52 @@ private fun AndroidTvSettingsRow(
     }
 
     rowModifier = rowModifier
-        .clickable(
-            interactionSource = interactionSource,
-            indication = null
-        ) {
-            soundManager.playSelectSound()
-            onClick()
-        }
-        .onKeyEvent { event ->
+        .onPreviewKeyEvent { event ->
             if (event.type == KeyEventType.KeyDown) {
                 val code = event.nativeKeyEvent.keyCode
                 val repeatCount = event.nativeKeyEvent.repeatCount
 
                 // Strict boundary lock: never let focus escape out of the side panel vertically
                 if (isFirstItem && (event.key == Key.DirectionUp || code == android.view.KeyEvent.KEYCODE_DPAD_UP)) {
-                    return@onKeyEvent true
+                    return@onPreviewKeyEvent true
                 }
                 if (isLastItem && (event.key == Key.DirectionDown || code == android.view.KeyEvent.KEYCODE_DPAD_DOWN)) {
-                    return@onKeyEvent true
+                    return@onPreviewKeyEvent true
                 }
 
                 // Suppress high-frequency repeat flutters on action keys
                 if (repeatCount > 0) {
-                    return@onKeyEvent true
+                    return@onPreviewKeyEvent true
                 }
 
                 if (event.key == Key.DirectionRight || code == android.view.KeyEvent.KEYCODE_DPAD_RIGHT) {
-                    soundManager.playSelectSound()
                     if (onNavigateRight != null) {
+                        soundManager.playSelectSound()
                         onNavigateRight()
-                    } else {
-                        onClick()
                     }
-                    return@onKeyEvent true
-                } else if ((event.key == Key.DirectionLeft || code == android.view.KeyEvent.KEYCODE_DPAD_LEFT) && onNavigateLeft != null) {
-                    soundManager.playSelectSound()
-                    onNavigateLeft()
-                    return@onKeyEvent true
+                    return@onPreviewKeyEvent true
+                } else if (event.key == Key.DirectionLeft || code == android.view.KeyEvent.KEYCODE_DPAD_LEFT) {
+                    if (onNavigateLeft != null) {
+                        soundManager.playSelectSound()
+                        onNavigateLeft()
+                        return@onPreviewKeyEvent true
+                    }
                 } else if (event.key == Key.DirectionCenter || event.key == Key.Enter ||
                     code == android.view.KeyEvent.KEYCODE_DPAD_CENTER || code == android.view.KeyEvent.KEYCODE_ENTER
                 ) {
                     soundManager.playSelectSound()
                     onClick()
-                    return@onKeyEvent true
+                    return@onPreviewKeyEvent true
                 }
             }
             false
+        }
+        .clickable(
+            interactionSource = interactionSource,
+            indication = null
+        ) {
+            soundManager.playSelectSound()
+            onClick()
         }
         .focusable(interactionSource = interactionSource)
 
@@ -773,12 +986,13 @@ private fun AndroidTvChevron(isFocused: Boolean) {
 }
 
 /**
- * Valeur secondaire avec chevron pour sous-menu Android TV Leanback
+ * Valeur secondaire avec chevron optionnel pour sous-menu Android TV Leanback
  */
 @Composable
 private fun AndroidTvValueText(
     value: String,
-    isFocused: Boolean
+    isFocused: Boolean,
+    showChevron: Boolean = false
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -790,12 +1004,14 @@ private fun AndroidTvValueText(
             fontSize = 13.sp,
             fontWeight = FontWeight.Normal
         )
-        Text(
-            text = "›",
-            color = if (isFocused) Color.White else Color(0xFF80868B),
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Light
-        )
+        if (showChevron) {
+            Text(
+                text = "›",
+                color = if (isFocused) Color.White else Color(0xFF80868B),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Light
+            )
+        }
     }
 }
 
@@ -827,6 +1043,26 @@ private fun launchAndroidTvSettings(context: Context) {
             }
         }
     }
+}
+
+/**
+ * Ouvre la page de mise à jour système Android TV
+ */
+private fun launchSystemUpdate(context: Context) {
+    val intents = listOf(
+        Intent("android.settings.SYSTEM_UPDATE_SETTINGS"),
+        Intent().setClassName("com.google.android.gms", "com.google.android.gms.update.SystemUpdateActivity"),
+        Intent().setClassName("com.android.tv.settings", "com.android.tv.settings.about.AboutSettings"),
+        Intent(Settings.ACTION_DEVICE_INFO_SETTINGS)
+    )
+    for (intent in intents) {
+        try {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+            return
+        } catch (_: Exception) {}
+    }
+    Toast.makeText(context, "Page de mise à jour système introuvable", Toast.LENGTH_SHORT).show()
 }
 
 // ============================================================
@@ -888,26 +1124,40 @@ fun SparkleTaloIcon(size: Dp, tint: Color) {
 }
 
 @Composable
-fun UserAvatarIcon(size: Dp, tint: Color) {
+fun CloudCheckIcon(size: Dp, tint: Color) {
     Canvas(modifier = Modifier.size(size)) {
         val w = this.size.width
         val h = this.size.height
 
-        // Head
-        drawCircle(
-            color = tint,
-            radius = w * 0.22f,
-            center = Offset(w * 0.5f, h * 0.32f)
-        )
-
-        // Body / Shoulders
-        val bodyPath = Path().apply {
-            moveTo(w * 0.2f, h * 0.85f)
-            quadraticTo(w * 0.22f, h * 0.60f, w * 0.5f, h * 0.60f)
-            quadraticTo(w * 0.78f, h * 0.60f, w * 0.8f, h * 0.85f)
+        // Cloud contour path
+        val cloudPath = Path().apply {
+            moveTo(w * 0.28f, h * 0.68f)
+            lineTo(w * 0.74f, h * 0.68f)
+            quadraticTo(w * 0.88f, h * 0.68f, w * 0.88f, h * 0.54f)
+            quadraticTo(w * 0.88f, h * 0.42f, w * 0.76f, h * 0.40f)
+            quadraticTo(w * 0.74f, h * 0.22f, w * 0.54f, h * 0.22f)
+            quadraticTo(w * 0.38f, h * 0.22f, w * 0.32f, h * 0.34f)
+            quadraticTo(w * 0.16f, h * 0.36f, w * 0.16f, h * 0.54f)
+            quadraticTo(w * 0.16f, h * 0.68f, w * 0.28f, h * 0.68f)
             close()
         }
-        drawPath(path = bodyPath, color = tint)
+        drawPath(
+            path = cloudPath,
+            color = tint,
+            style = Stroke(width = 2.2f, cap = StrokeCap.Round)
+        )
+
+        // Checkmark inside cloud
+        val checkPath = Path().apply {
+            moveTo(w * 0.40f, h * 0.48f)
+            lineTo(w * 0.49f, h * 0.57f)
+            lineTo(w * 0.64f, h * 0.40f)
+        }
+        drawPath(
+            path = checkPath,
+            color = tint,
+            style = Stroke(width = 2.2f, cap = StrokeCap.Round)
+        )
     }
 }
 
@@ -980,31 +1230,6 @@ fun ShieldIcon(size: Dp, tint: Color) {
 }
 
 @Composable
-fun CinemaIcon(size: Dp, tint: Color) {
-    Canvas(modifier = Modifier.size(size)) {
-        val w = this.size.width
-        val h = this.size.height
-
-        // Film clapper board
-        drawRoundRect(
-            color = tint,
-            topLeft = Offset(w * 0.15f, h * 0.32f),
-            size = Size(w * 0.70f, h * 0.50f),
-            cornerRadius = CornerRadius(4f, 4f),
-            style = Stroke(width = 2f)
-        )
-
-        // Top bar
-        drawRoundRect(
-            color = tint,
-            topLeft = Offset(w * 0.15f, h * 0.18f),
-            size = Size(w * 0.70f, h * 0.14f),
-            cornerRadius = CornerRadius(3f, 3f)
-        )
-    }
-}
-
-@Composable
 fun InfoCircleIcon(size: Dp, tint: Color) {
     Canvas(modifier = Modifier.size(size)) {
         val w = this.size.width
@@ -1032,6 +1257,78 @@ fun InfoCircleIcon(size: Dp, tint: Color) {
             end = Offset(w * 0.5f, h * 0.68f),
             strokeWidth = 2.2f,
             cap = StrokeCap.Round
+        )
+    }
+}
+
+@Composable
+fun ClockTimerIcon(size: Dp, tint: Color) {
+    Canvas(modifier = Modifier.size(size)) {
+        val w = this.size.width
+        val h = this.size.height
+
+        // Clock outline
+        drawCircle(
+            color = tint,
+            radius = w * 0.38f,
+            center = Offset(w * 0.5f, h * 0.5f),
+            style = Stroke(width = 2.2f)
+        )
+
+        // Center pivot
+        drawCircle(
+            color = tint,
+            radius = 2f,
+            center = Offset(w * 0.5f, h * 0.5f)
+        )
+
+        // Hour hand
+        drawLine(
+            color = tint,
+            start = Offset(w * 0.5f, h * 0.5f),
+            end = Offset(w * 0.5f, h * 0.28f),
+            strokeWidth = 2.2f,
+            cap = StrokeCap.Round
+        )
+
+        // Minute hand
+        drawLine(
+            color = tint,
+            start = Offset(w * 0.5f, h * 0.5f),
+            end = Offset(w * 0.68f, h * 0.5f),
+            strokeWidth = 2.2f,
+            cap = StrokeCap.Round
+        )
+    }
+}
+
+@Composable
+fun UpdateCheckIcon(size: Dp, tint: Color) {
+    Canvas(modifier = Modifier.size(size)) {
+        val w = this.size.width
+        val h = this.size.height
+
+        // Circular sweep arc
+        drawArc(
+            color = tint,
+            startAngle = 35f,
+            sweepAngle = 285f,
+            useCenter = false,
+            topLeft = Offset(w * 0.15f, h * 0.15f),
+            size = Size(w * 0.70f, h * 0.70f),
+            style = Stroke(width = 2.2f, cap = StrokeCap.Round)
+        )
+
+        // Arrow head at top end
+        val arrowPath = Path().apply {
+            moveTo(w * 0.84f, h * 0.40f)
+            lineTo(w * 0.88f, h * 0.58f)
+            lineTo(w * 0.70f, h * 0.56f)
+        }
+        drawPath(
+            path = arrowPath,
+            color = tint,
+            style = Stroke(width = 2.2f, cap = StrokeCap.Round)
         )
     }
 }
